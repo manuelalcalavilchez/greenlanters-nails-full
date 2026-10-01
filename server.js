@@ -67,6 +67,44 @@ function verifyStaffToken(token) {
     return payload.exp > Date.now() ? payload : null;
   } catch { return null; }
 }
+const STAFF_LOGIN_MAX_FAILURES = 5;
+const STAFF_LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const STAFF_LOGIN_LOCK_MS = 5 * 60 * 1000;
+const staffLoginFailures = new Map();
+
+function staffLoginKey(req) {
+  return req.ip || req.socket.remoteAddress || 'unknown';
+}
+
+function getStaffLoginLock(req) {
+  const key = staffLoginKey(req);
+  const record = staffLoginFailures.get(key);
+  if (!record) return null;
+  if (record.lockedUntil > Date.now()) return record;
+  if (record.firstFailureAt + STAFF_LOGIN_WINDOW_MS <= Date.now()) {
+    staffLoginFailures.delete(key);
+    return null;
+  }
+  return record;
+}
+
+function registerStaffLoginFailure(req) {
+  const key = staffLoginKey(req);
+  const now = Date.now();
+  const current = getStaffLoginLock(req);
+  const record = current && current.firstFailureAt + STAFF_LOGIN_WINDOW_MS > now
+    ? current
+    : { failures: 0, firstFailureAt: now, lockedUntil: 0 };
+  record.failures += 1;
+  if (record.failures >= STAFF_LOGIN_MAX_FAILURES) record.lockedUntil = now + STAFF_LOGIN_LOCK_MS;
+  staffLoginFailures.set(key, record);
+  return record;
+}
+
+function clearStaffLoginFailures(req) {
+  staffLoginFailures.delete(staffLoginKey(req));
+}
+
 function requireStaff(req, res, next) {
   const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
   const payload = verifyStaffToken(token);
@@ -463,7 +501,22 @@ app.post('/api/staff/setup-password', (req, res) => {
 app.post('/api/staff/login', (req, res) => {
   const auth = loadStaffAuth();
   if (!auth) return res.status(428).json({ error: 'SETUP_REQUIRED', message: 'Debes crear la contraseña inicial.' });
-  if (!verifyPassword(String(req.body?.password || ''), auth)) return res.status(401).json({ error: 'Credenciales incorrectas.' });
+
+  const lock = getStaffLoginLock(req);
+  if (lock?.lockedUntil > Date.now()) {
+    return res.status(429).json({ error: 'Demasiados intentos. Espera unos minutos antes de volver a intentarlo.' });
+  }
+
+  if (!verifyPassword(String(req.body?.password || ''), auth)) {
+    const failure = registerStaffLoginFailure(req);
+    const remaining = Math.max(0, STAFF_LOGIN_MAX_FAILURES - failure.failures);
+    return res.status(401).json({
+      error: 'Credenciales incorrectas.',
+      ...(remaining > 0 ? { attemptsRemaining: remaining } : {})
+    });
+  }
+
+  clearStaffLoginFailures(req);
   res.json({ ok: true, token: signStaffToken({ role: 'staff', tenantId: TENANT_ID, exp: Date.now() + 8 * 60 * 60 * 1000 }) });
 });
 
