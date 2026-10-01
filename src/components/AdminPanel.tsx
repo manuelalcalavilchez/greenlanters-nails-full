@@ -365,9 +365,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
   return (
     <StaffAuthGate>
-    <div className="min-h-screen bg-[#F7F8EF] pb-24 lg:pb-12 px-4 lg:px-12 py-8">
+    <div className="min-h-screen bg-[#F7F8EF] pb-28 lg:pb-12 px-3 sm:px-4 lg:px-12 py-4 sm:py-8">
       <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-5 sm:mb-8 gap-3">
           <div>
             <span className="text-xs font-bold uppercase tracking-widest text-[#8CFF00]">Panel de Control</span>
             <h1 className="font-display text-3xl sm:text-4xl font-bold text-[#082D05] mt-1">
@@ -393,7 +393,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         </div>
 
         {/* Tabs */}
-        <div className="flex flex-wrap gap-2 mb-8 bg-[#F7F8EF] p-2 rounded-2xl overflow-x-auto">
+        <div className="sticky top-0 z-30 -mx-4 lg:mx-0 mb-6 bg-[#F7F8EF]/95 backdrop-blur-md border-b border-[#8CFF00]/20 px-2 py-2">
+          <div className="flex gap-2 overflow-x-auto pb-1 snap-x snap-mandatory">
+
           {[
             { id: 'config', label: 'Configuración', icon: Settings },
             { id: 'contenidos', label: 'Contenidos', icon: FileText },
@@ -409,7 +411,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all flex items-center gap-2 whitespace-nowrap relative ${
+                className={`min-h-11 px-4 py-2.5 text-xs font-semibold rounded-xl transition-all flex items-center gap-2 whitespace-nowrap relative snap-start ${
                   activeTab === tab.id ? 'bg-[#082D05] text-[#F7F8EF] shadow-sm' : 'text-[#082D05]/70 hover:text-[#082D05]'
                 }`}
               >
@@ -423,6 +425,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               </button>
             );
           })}
+          </div>
         </div>
 
         {/* CONFIGURACIÓN */}
@@ -743,7 +746,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               </button>
             </div>
 
-            <div className="bg-white rounded-3xl border border-[#8CFF00]/25 overflow-hidden">
+            <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#8CFF00]/25 overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead className="bg-[#F7F8EF] border-b border-neutral-200 text-[#082D05] uppercase font-semibold">
