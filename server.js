@@ -538,6 +538,7 @@ app.use('/api', (req, res, next) => {
   if (req.path.startsWith('/staff/')) return next();
   if (req.path === '/booking-request' && req.method === 'POST') return next();
   if (req.path === '/public/content-feed' && req.method === 'GET') return next();
+  if (req.path === '/chat' && req.method === 'POST') return next();
   if (/^\/gallery\/[^/]+\/image$/.test(req.path) && req.method === 'GET') return next();
   if (req.path === '/health' && req.method === 'GET') return next();
 
@@ -550,6 +551,59 @@ app.use('/api', (req, res, next) => {
 });
 
 // ==================== RUTAS API ====================
+
+app.post('/api/chat', async (req, res) => {
+  try {
+    const message = String(req.body?.message || '').trim().slice(0, 1200);
+    if (!message) return res.status(400).json({ error: 'Mensaje vacío.' });
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+    if (!apiKey) return res.status(503).json({ error: 'AI_NOT_CONFIGURED' });
+
+    const business = req.body?.business || {};
+    const services = Array.isArray(req.body?.services) ? req.body.services.slice(0, 30) : [];
+    const config = req.body?.config || {};
+    const context = JSON.stringify({
+      name: business.name,
+      location: business.location,
+      description: business.description,
+      services,
+      contact: { phone: config.phone, whatsapp: config.whatsapp, address: config.address, hours: config.hours }
+    });
+
+    const prompt = [
+      'Eres el asistente de atención al cliente de Las Greenlanters Nails.',
+      'Responde en español de España, con tono cercano, profesional y breve.',
+      'Usa únicamente la información proporcionada. No inventes precios, horarios, disponibilidad ni políticas.',
+      'Si la información no aparece, dilo claramente y ofrece continuar por WhatsApp o solicitar una cita.',
+      'No des consejos médicos ni legales. No afirmes que has realizado una reserva si no existe una acción confirmada.',
+      'Información del negocio: ' + context,
+      'Pregunta de la clienta: ' + message
+    ].join('\n');
+
+    const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent?key=' + encodeURIComponent(apiKey);
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+    });
+
+    if (!response.ok) {
+      const detail = await response.text();
+      console.warn('Chat IA Gemini:', response.status, detail.slice(0, 500));
+      return res.status(502).json({ error: 'AI_UNAVAILABLE' });
+    }
+
+    const data = await response.json();
+    const answer = data?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('').trim();
+    if (!answer) return res.status(502).json({ error: 'AI_EMPTY' });
+    res.json({ answer });
+  } catch (err) {
+    console.error('Error en /api/chat:', err);
+    res.status(500).json({ error: 'CHAT_ERROR' });
+  }
+});
 
 // CONTENIDOS EDITORIALES
 app.get('/api/content', async (_req, res) => {

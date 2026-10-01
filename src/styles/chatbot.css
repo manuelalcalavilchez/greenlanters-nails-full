@@ -1,0 +1,33 @@
+.gl-chat-launcher {
+  position: fixed; right: 18px; bottom: 86px; z-index: 80;
+  display: flex; align-items: center; gap: 9px;
+  border: 0; border-radius: 999px; padding: 13px 17px;
+  background: #082D05; color: #F7F8EF; box-shadow: 0 10px 28px rgba(8,45,5,.28);
+  font: 700 14px/1 Plus Jakarta Sans, sans-serif; cursor: pointer;
+}
+.gl-chat-launcher svg { color: #8CFF00; }
+.gl-chat-panel {
+  position: fixed; right: 18px; bottom: 145px; z-index: 81;
+  width: min(390px, calc(100vw - 36px)); height: min(650px, calc(100vh - 180px));
+  display: flex; flex-direction: column; overflow: hidden;
+  border: 1px solid rgba(8,45,5,.14); border-radius: 22px;
+  background: #F7F8EF; color: #082D05; box-shadow: 0 24px 70px rgba(8,45,5,.24);
+}
+.gl-chat-header { display:flex; align-items:center; gap:11px; padding:15px; background:#082D05; color:#F7F8EF; }
+.gl-chat-header strong { display:block; font-size:14px; }
+.gl-chat-header small { display:block; margin-top:2px; opacity:.72; font-size:11px; }
+.gl-chat-header > button { margin-left:auto; border:0; background:transparent; color:#F7F8EF; cursor:pointer; }
+.gl-chat-avatar { width:40px; height:40px; display:grid; place-items:center; border-radius:50%; background:#8CFF00; color:#082D05; }
+.gl-chat-messages { flex:1; overflow:auto; padding:14px; display:flex; flex-direction:column; gap:9px; }
+.gl-chat-message { max-width:88%; padding:10px 12px; border-radius:15px; white-space:pre-wrap; font-size:13px; line-height:1.45; }
+.gl-chat-message.assistant { align-self:flex-start; background:#fff; border:1px solid rgba(8,45,5,.09); }
+.gl-chat-message.user { align-self:flex-end; background:#176B00; color:#fff; }
+.gl-chat-actions { padding:8px 12px; display:flex; flex-wrap:wrap; gap:6px; border-top:1px solid rgba(8,45,5,.08); }
+.gl-chat-actions button { border:1px solid #176B00; border-radius:999px; background:transparent; color:#176B00; padding:7px 9px; font-size:11px; cursor:pointer; }
+.gl-chat-input { display:flex; gap:7px; padding:11px; background:#fff; border-top:1px solid rgba(8,45,5,.1); }
+.gl-chat-input input { min-width:0; flex:1; border:1px solid rgba(8,45,5,.2); border-radius:12px; padding:10px; outline:none; font-size:13px; }
+.gl-chat-input button { width:40px; border:0; border-radius:12px; background:#8CFF00; color:#082D05; cursor:pointer; }
+@media (max-width: 600px) {
+  .gl-chat-launcher { right:12px; bottom:78px; }
+  .gl-chat-panel { right:10px; bottom:132px; width:calc(100vw - 20px); height:min(620px, calc(100vh - 150px)); }
+}

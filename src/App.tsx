@@ -13,6 +13,7 @@ import { Appointment, CustomDesign, GiftCard, NailCatalogStyle } from './types';
 import { NAIL_STYLES_CATALOG } from './data/mockData';
 import { apiService } from './data/api';
 import { businessProfile } from './config/businessProfile';
+import { GreenlantersChatbot } from './components/GreenlantersChatbot';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('home');
@@ -169,6 +170,8 @@ export default function App() {
 
       {/* Footer */}
       <Footer />
+
+      <GreenlantersChatbot setActiveTab={setActiveTab} />
 
       {/* Mobile Bottom Navigation */}
       <BottomNav 
