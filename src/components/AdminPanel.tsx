@@ -7,6 +7,9 @@ import { apiService } from '../data/api';
 import { businessProfile } from '../config/businessProfile';
 import ContentBlockEditor from './admin/ContentBlockEditor';
 import AdminTabBar, { AdminTabId } from './admin/AdminTabBar';
+import GalleryPanel from './admin/GalleryPanel';
+import ServicesPanel from './admin/ServicesPanel';
+import SpecialistsPanel from './admin/SpecialistsPanel';
 import { AdminPanelProps, DEFAULT_CONFIG, DEFAULT_WORKING_HOURS, SalonConfig } from './admin/adminTypes';
 
 
@@ -547,252 +550,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
         {/* GALERÍA */}
         {activeTab === 'galeria' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-3xl border border-[#8CFF00]/25 p-8">
-              <h2 className="font-display text-2xl font-bold text-[#082D05] mb-6">Galería de Fotos</h2>
-              
-              <div className="mb-8">
-                <label className="block">
-                  <div className="border-2 border-dashed border-[#8CFF00]/40 rounded-2xl p-8 text-center cursor-pointer hover:bg-[#F7F8EF] transition-all">
-                    <Image className="w-8 h-8 mx-auto mb-3 text-[#8CFF00]" />
-                    <p className="text-sm font-semibold text-[#082D05] mb-1">Sube fotos de tu salón</p>
-                    <p className="text-xs text-neutral-500">JPG, PNG - Máx 10MB</p>
-                  </div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoUpload}
-                    className="hidden"
-                  />
-                </label>
-              </div>
-
-              {galleryPhotos.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {galleryPhotos.map((photo, idx) => (
-                    <div key={idx} className="relative group rounded-xl overflow-hidden aspect-square">
-                      <img src={photo} alt={`Foto ${idx}`} className="w-full h-full object-cover" />
-                      <button
-                        onClick={async () => {
-                          const id = galleryIds[idx];
-                          if (id) {
-                            const deleted = await apiService.deletePhoto(id);
-                            if (!deleted?.success) return;
-                          }
-                          setGalleryPhotos(prev => prev.filter((_, i) => i !== idx));
-                          setGalleryIds(prev => prev.filter((_, i) => i !== idx));
-                        }}
-                        className="absolute inset-0 bg-black/0 group-hover:bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
-                      >
-                        <Trash2 className="w-6 h-6 text-white" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+          <GalleryPanel galleryPhotos={galleryPhotos} galleryIds={galleryIds} handlePhotoUpload={handlePhotoUpload} setGalleryPhotos={setGalleryPhotos} setGalleryIds={setGalleryIds} />
         )}
 
         {/* SERVICIOS */}
         {activeTab === 'servicios' && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="font-display text-2xl font-bold text-[#082D05]">Servicios & Precios</h2>
-              <button
-                onClick={addService}
-                className="px-4 py-2 bg-[#082D05] text-[#F7F8EF] text-xs font-bold rounded-lg flex items-center gap-2 hover:bg-[#176B00]"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Nuevo Servicio</span>
-              </button>
-            </div>
-
-            <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#8CFF00]/25 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead className="bg-[#F7F8EF] border-b border-neutral-200 text-[#082D05] uppercase font-semibold">
-                    <tr>
-                      <th className="p-4 text-left">Servicio</th>
-                      <th className="p-4 text-center">Duración (min)</th>
-                      <th className="p-4 text-center">Precio (€)</th>
-                      <th className="p-4 text-center">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-100">
-                    {services.map(svc => (
-                      <tr key={svc.id} className="hover:bg-neutral-50">
-                        <td className="p-4">
-                          {editingService?.id === svc.id ? (
-                            <input
-                              type="text"
-                              value={editingService.name}
-                              onChange={(e) => setEditingService({...editingService, name: e.target.value})}
-                              className="px-3 py-2 border border-neutral-300 rounded-lg text-xs w-full"
-                            />
-                          ) : (
-                            <span className="font-semibold text-[#082D05]">{svc.name}</span>
-                          )}
-                        </td>
-                        <td className="p-4 text-center">
-                          {editingService?.id === svc.id ? (
-                            <input
-                              type="number"
-                              value={editingService.duration}
-                              onChange={(e) => setEditingService({...editingService, duration: parseInt(e.target.value)})}
-                              className="px-3 py-2 border border-neutral-300 rounded-lg text-xs w-20 mx-auto"
-                            />
-                          ) : (
-                            svc.duration == null ? '-' : svc.duration
-                          )}
-                        </td>
-                        <td className="p-4 text-center">
-                          {editingService?.id === svc.id ? (
-                            <input
-                              type="number"
-                              value={editingService.price}
-                              onChange={(e) => setEditingService({...editingService, price: parseFloat(e.target.value)})}
-                              className="px-3 py-2 border border-neutral-300 rounded-lg text-xs w-20 mx-auto"
-                            />
-                          ) : (
-                            <span className="font-bold text-[#8CFF00]">{svc.price}€</span>
-                          )}
-                        </td>
-                        <td className="p-4 text-center space-x-2">
-                          {editingService?.id === svc.id ? (
-                            <>
-                              <button
-                                onClick={async () => {
-                                  const saved = await apiService.updateService(editingService.id, editingService);
-                                  if (saved?.success) {
-                                    setServices(prev => prev.map(s => s.id === editingService.id ? editingService : s));
-                                    setEditingService(null);
-                                  }
-                                }}
-                                className="px-2 py-1 bg-[#082D05] text-[#F7F8EF] rounded text-[10px] font-bold hover:bg-[#176B00]"
-                              >
-                                Guardar
-                              </button>
-                              <button
-                                onClick={() => setEditingService(null)}
-                                className="px-2 py-1 bg-neutral-200 text-neutral-700 rounded text-[10px] font-bold hover:bg-neutral-300"
-                              >
-                                Cancelar
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button
-                                onClick={() => setEditingService(svc)}
-                                className="px-2 py-1 bg-neutral-100 text-[#082D05] rounded text-[10px] font-bold hover:bg-neutral-200"
-                              >
-                                <Edit2 className="w-3 h-3" />
-                              </button>
-                              <button
-                                onClick={async () => {
-                                  const deleted = await apiService.deleteService(svc.id);
-                                  if (deleted?.success) setServices(prev => prev.filter(s => s.id !== svc.id));
-                                }}
-                                className="px-2 py-1 bg-rose-100 text-rose-700 rounded text-[10px] font-bold hover:bg-rose-200"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </button>
-                            </>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
+          <ServicesPanel services={services} editingService={editingService} setServices={setServices} setEditingService={setEditingService} addService={addService} />
         )}
 
         {/* ESPECIALISTAS */}
         {activeTab === 'especialistas' && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="font-display text-2xl font-bold text-[#082D05]">Equipo de Especialistas</h2>
-              <button
-                onClick={addSpecialist}
-                className="px-4 py-2 bg-[#082D05] text-[#F7F8EF] text-xs font-bold rounded-lg flex items-center gap-2 hover:bg-[#176B00]"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Nuevo Especialista</span>
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {specialists.map(spec => (
-                <div key={spec.id} className="bg-white rounded-2xl border border-[#8CFF00]/30 p-6 space-y-4">
-                  <div className="text-4xl text-center mb-3">{spec.photo}</div>
-                  {editingSpecialist?.id === spec.id ? (
-                    <div className="space-y-3">
-                      <input
-                        type="text"
-                        value={editingSpecialist.name}
-                        onChange={(e) => setEditingSpecialist({...editingSpecialist, name: e.target.value})}
-                        placeholder="Nombre"
-                        className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-xs"
-                      />
-                      <input
-                        type="text"
-                        value={editingSpecialist.role}
-                        onChange={(e) => setEditingSpecialist({...editingSpecialist, role: e.target.value})}
-                        placeholder="Cargo"
-                        className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-xs"
-                      />
-                      <div className="flex gap-2">
-                        <button
-                          onClick={async () => {
-                            const saved = await apiService.updateSpecialist(editingSpecialist.id, editingSpecialist);
-                            if (saved?.success) {
-                              setSpecialists(prev => prev.map(s => s.id === editingSpecialist.id ? editingSpecialist : s));
-                              setEditingSpecialist(null);
-                            }
-                          }}
-                          className="flex-1 px-3 py-2 bg-[#082D05] text-[#F7F8EF] rounded-lg text-xs font-bold hover:bg-[#176B00]"
-                        >
-                          Guardar
-                        </button>
-                        <button
-                          onClick={() => setEditingSpecialist(null)}
-                          className="flex-1 px-3 py-2 bg-neutral-200 text-neutral-700 rounded-lg text-xs font-bold"
-                        >
-                          Cancelar
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div>
-                        <h3 className="font-bold text-[#082D05] text-center">{spec.name}</h3>
-                        <p className="text-xs text-neutral-500 text-center">{spec.role}</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setEditingSpecialist(spec)}
-                          className="flex-1 px-3 py-2 bg-neutral-100 text-[#082D05] rounded-lg text-xs font-bold hover:bg-neutral-200"
-                        >
-                          Editar
-                        </button>
-                        <button
-                          onClick={async () => {
-                            const deleted = await apiService.deleteSpecialist(spec.id);
-                            if (deleted?.success) setSpecialists(prev => prev.filter(s => s.id !== spec.id));
-                          }}
-                          className="flex-1 px-3 py-2 bg-rose-100 text-rose-700 rounded-lg text-xs font-bold hover:bg-rose-200"
-                        >
-                          Eliminar
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
+          <SpecialistsPanel specialists={specialists} editingSpecialist={editingSpecialist} setSpecialists={setSpecialists} setEditingSpecialist={setEditingSpecialist} addSpecialist={addSpecialist} />
         )}
 
         {/* SOLICITUDES DE CITA */}
