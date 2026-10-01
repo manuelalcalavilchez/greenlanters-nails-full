@@ -1,34 +1,97 @@
 # PLAN REUTILIZABLE — Motor de negocio
 
-## Estado actual
-- React 19 + TypeScript + Vite.
-- Express + SQLite.
-- Cabina Staff con autenticación backend por scrypt + token HMAC.
-- Primer acceso sin contraseña predefinida.
-- Editor de contenidos persistente en SQLite.
-- tenant_id preparado en las tablas operativas y aplicado automáticamente por la capa SQL.
-- TENANT_ID configurable por entorno.
+## Objetivo
+Convertir la aplicación de Las Greenlanters Nails en un motor reutilizable para
+otros negocios de servicios, separando motor, tenant, perfil, plantilla y UI.
+
+## Arquitectura
+- Frontend: React 19 + TypeScript + Vite.
+- Backend: Express + SQLite.
+- Persistencia: SQLite por instalación, con tenant_id en datos operativos.
+- Auth Staff: scrypt + timingSafeEqual + token HMAC en sessionStorage.
+- Contenido: content_blocks editable desde Cabina Staff.
+- Perfil: src/config/businessProfile.ts.
+- PWA: manifest + service worker, sin cachear API.
 
 ## Capas
-1. Motor: autenticación, citas, servicios, especialistas, galería, contenidos y API.
-2. Tenant: identificación del negocio mediante TENANT_ID.
-3. Perfil: nombre, logo, colores, contacto, horarios y redes.
-4. Plantilla: etiquetas, tipos de bloques y capacidades activadas.
-5. UI: Cabina Staff mobile-first.
-6. Conversación: texto/voz que termina en acciones API controladas.
+1. Motor: autenticación, citas, servicios, especialistas, galería y API.
+2. Tenant: TENANT_ID de entorno; siguiente evolución: resolver por host.
+3. Perfil: identidad, contacto, redes y colores.
+4. Plantilla: sector, labels y capacidades.
+5. UI: web pública + Cabina Staff.
+6. Integraciones: voz, chat, Instagram y acciones controladas.
 
-## Aislamiento
-Las tablas operativas incluyen tenant_id. La función scopeTenantQuery() aplica el tenant a SELECT/INSERT/UPDATE/DELETE.
+## Modelo de datos
+Las tablas operativas incluyen tenant_id:
+appointments, custom_designs, salon_config, services, specialists,
+booking_requests, gallery y content_blocks.
 
-## Contenido
-content_blocks permite bloques hero, section, cta, social y futuros tipos. El Staff edita mediante API; la persistencia no depende de localStorage.
+La capa scopeTenantQuery() añade el tenant a SELECT/INSERT/UPDATE/DELETE.
+Las migraciones actuales añaden la columna sin destruir datos existentes.
 
-## Siguientes fases
-- Conectar Home pública a content_blocks.
-- BusinessTemplate y labels sectoriales.
-- Modularizar AdminPanel.
-- PWA.
-- Voz/chat sobre acciones controladas.
-- Instagram como proveedor de imágenes.
+## Contrato API
+### Público
+- GET /api/health
+- GET /api/content
+- GET /api/services
+- GET /api/specialists
+- GET /api/gallery
+- POST /api/booking-request
+- GET /api/config
+- GET /api/public/content-feed
+
+### Staff protegido
+- GET /api/appointments
+- POST/PUT/DELETE /api/appointments/:id
+- GET /api/designs
+- POST/PUT/DELETE /api/designs/:id
+- POST/PUT/DELETE /api/content/:id
+- PUT /api/config
+- POST/PUT/DELETE /api/services/:id
+- POST/PUT/DELETE /api/specialists/:id
+- POST/DELETE /api/gallery/:id
+- GET/PUT/DELETE /api/booking-requests/:id
+
+### Auth
+- GET /api/staff/status
+- POST /api/staff/setup-password
+- POST /api/staff/login
+- POST /api/staff/change-password
+
+## Reutilización
+Para crear otro negocio:
+1. Cambiar businessProfile.
+2. Definir labels y sector.
+3. Configurar colores, logo y contacto.
+4. Sembrar content_blocks y servicios del tenant.
+5. Configurar TENANT_ID.
+6. Mantener el motor y las rutas API.
+
+## Resolución multi-tenant futura
+La instalación actual usa TENANT_ID desde entorno para aislar datos.
+La evolución SaaS debe resolver el tenant por hostname/subdominio o credencial
+del negocio, validarlo en middleware y evitar aceptar tenant_id desde el cliente.
+
+Debe añadirse un índice por tenant en consultas de alto volumen y restricciones
+compuestas donde una clave solo deba ser única dentro del negocio.
+
+## Migraciones
+Las migraciones deben ser idempotentes y ejecutarse al arrancar o mediante un
+comando explícito de despliegue. Antes de migrar una base SQLite se conserva
+backup verificable con PRAGMA integrity_check.
+
+## Seguridad pendiente
+- Hacer obligatorio y persistente STAFF_TOKEN_SECRET en producción.
+- Rate limit/lockout en login y primer setup.
+- Rotación/revocación de tokens.
+- Validación de payloads y límites de tamaño para imágenes.
+- No confiar en tenant_id enviado por frontend.
+
+## Próximas tandas
+- Modularizar AdminPanel en componentes por dominio.
+- Completar UI mobile-first de Staff.
+- Acciones JSON controladas para conversación.
+- Voz/chat sobre acciones autorizadas.
+- Instagram Graph API y fallback.
 - Tests automatizados.
-- Despliegue Easypanel.
+- Deployment.md y procedimiento EasyPanel.

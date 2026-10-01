@@ -4,6 +4,7 @@ import { Appointment, CustomDesign, NailCatalogStyle } from '../types';
 import StaffAuthGate from './admin/StaffAuthGate';
 import StaffPasswordModal from './admin/StaffPasswordModal';
 import { apiService } from '../data/api';
+import { businessProfile } from '../config/businessProfile';
 
 
 interface SalonConfig {
@@ -52,11 +53,11 @@ const DEFAULT_WORKING_HOURS = [
 ];
 
 const DEFAULT_CONFIG: SalonConfig = {
-  name: 'Las Greenlanters Nails',
-  description: 'Manicurista · Técnica en uñas gel y poligel · Dibujos a mano, decoración · Almería · Tus manos hablan por ti, haz que destaquen',
+  name: businessProfile.name,
+  description: businessProfile.description,
   phone: '',
   email: '',
-  address: 'Almería',
+  address: businessProfile.location,
   hours: '',
   whatsapp: '',
   logo: '/assets/logo.jpg',
@@ -70,9 +71,9 @@ const DEFAULT_CONFIG: SalonConfig = {
   nailStyles: [],
   products: [],
   colors: {
-    primary: '#082D05',
-    accent: '#8CFF00',
-    background: '#F7F8EF'
+    primary: businessProfile.colors.primary,
+    accent: businessProfile.colors.accent,
+    background: businessProfile.colors.background
   }
 };
 
@@ -258,7 +259,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       category: 'diseno_personalizado',
       featured: false,
       sortOrder: services.length + 1,
-      instagramSource: '@greenlanters.nails'
+      instagramSource: businessProfile.instagram
     };
     const saved = await apiService.createService(newService);
     if (saved?.success) {
