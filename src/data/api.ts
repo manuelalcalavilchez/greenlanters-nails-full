@@ -109,6 +109,58 @@ export const apiService = {
     }
   },
 
+  // CONTENIDOS
+  async getContent() {
+    try {
+      const res = await fetch(`${API_BASE}/content`);
+      return res.json();
+    } catch (err) {
+      console.error('Error fetching content:', err);
+      return [];
+    }
+  },
+
+  async createContent(block: any) {
+    try {
+      const res = await fetch(`${API_BASE}/content`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...staffAuthHeaders() },
+        body: JSON.stringify(block)
+      });
+      return res.json();
+    } catch (err) {
+      console.error('Error creating content:', err);
+      return { error: err };
+    }
+  },
+
+  async updateContent(id: string, block: any) {
+    try {
+      const res = await fetch(`${API_BASE}/content/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...staffAuthHeaders() },
+        body: JSON.stringify(block)
+      });
+      return res.json();
+    } catch (err) {
+      console.error('Error updating content:', err);
+      return { error: err };
+    }
+  },
+
+  async deleteContent(id: string) {
+    try {
+      const res = await fetch(`${API_BASE}/content/${id}`, {
+        method: 'DELETE',
+        headers: staffAuthHeaders()
+      });
+      return res.json();
+    } catch (err) {
+      console.error('Error deleting content:', err);
+      return { error: err };
+    }
+  },
+
   // CONFIGURACIÓN
   async getConfig() {
     try {

@@ -76,6 +76,43 @@ const DEFAULT_CONFIG: SalonConfig = {
   }
 };
 
+const ContentBlockEditor: React.FC<{ block: any; onSave: (block: any) => Promise<void> }> = ({ block, onSave }) => {
+  const [draft, setDraft] = useState(block);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => setDraft(block), [block]);
+
+  const save = async () => {
+    setSaving(true);
+    try { await onSave(draft); } finally { setSaving(false); }
+  };
+
+  return (
+    <div className="bg-white rounded-3xl border border-[#8CFF00]/25 p-5 space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <span className="text-[10px] uppercase tracking-widest font-bold text-[#8CFF00]">{draft.type}</span>
+          <h3 className="font-display text-lg font-bold text-[#082D05]">{draft.key}</h3>
+        </div>
+        <label className="flex items-center gap-2 text-xs">
+          <input type="checkbox" checked={Boolean(draft.enabled)} onChange={e => setDraft({...draft, enabled: e.target.checked ? 1 : 0})} />
+          Visible
+        </label>
+      </div>
+      <input value={draft.title || ''} onChange={e => setDraft({...draft, title: e.target.value})} placeholder="Título" className="w-full px-3 py-3 rounded-xl border border-neutral-300" />
+      <input value={draft.subtitle || ''} onChange={e => setDraft({...draft, subtitle: e.target.value})} placeholder="Subtítulo" className="w-full px-3 py-3 rounded-xl border border-neutral-300" />
+      <textarea value={draft.body || ''} onChange={e => setDraft({...draft, body: e.target.value})} placeholder="Texto" className="w-full px-3 py-3 rounded-xl border border-neutral-300 min-h-28" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <input value={draft.buttonText || ''} onChange={e => setDraft({...draft, buttonText: e.target.value})} placeholder="Texto del botón" className="w-full px-3 py-3 rounded-xl border border-neutral-300" />
+        <input value={draft.buttonUrl || ''} onChange={e => setDraft({...draft, buttonUrl: e.target.value})} placeholder="Enlace del botón" className="w-full px-3 py-3 rounded-xl border border-neutral-300" />
+      </div>
+      <button onClick={save} disabled={saving} className="w-full py-3 rounded-xl bg-[#082D05] text-white font-bold disabled:opacity-50">
+        {saving ? 'Guardando…' : 'Guardar bloque'}
+      </button>
+    </div>
+  );
+};
+
 export const AdminPanel: React.FC<AdminPanelProps> = ({
   appointments,
   setAppointments,
@@ -97,6 +134,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [services, setServices] = useState<any[]>([]);
   const [specialists, setSpecialists] = useState<any[]>([]);
   const [bookingRequests, setBookingRequests] = useState<any[]>([]);
+  const [contentBlocks, setContentBlocks] = useState<any[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
 
   const reloadBookingRequests = async () => {
@@ -107,12 +145,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const reloadStaffData = async () => {
     setIsLoadingData(true);
     try {
-      const [config, apiServices, apiSpecialists, gallery, requests] = await Promise.all([
+      const [config, apiServices, apiSpecialists, gallery, requests, content] = await Promise.all([
         apiService.getConfig(),
         apiService.getServices(),
         apiService.getSpecialists(),
         apiService.getGallery(),
-        apiService.getBookingRequests()
+        apiService.getBookingRequests(),
+        apiService.getContent()
       ]);
 
       if (config && config.id) {
@@ -151,6 +190,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       setGalleryPhotos(Array.isArray(gallery) ? gallery.map((g: any) => g.photoBase64).filter(Boolean) : []);
       setGalleryIds(Array.isArray(gallery) ? gallery.map((g: any) => g.id) : []);
       setBookingRequests(Array.isArray(requests) ? requests : []);
+      setContentBlocks(Array.isArray(content) ? content : []);
     } finally {
       setIsLoadingData(false);
     }
@@ -299,6 +339,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     if (!confirm('¿Eliminar esta solicitud?')) return;
     await apiService.deleteBookingRequest(id);
     await reloadBookingRequests();
+  };
+
+  const saveContentBlock = async (block: any) => {
+    const result = await apiService.updateContent(block.id, block);
+    if (result?.success) {
+      setContentBlocks(prev => prev.map(item => item.id === block.id ? block : item));
+    } else {
+      alert('No se pudo guardar el contenido.');
+    }
   };
 
   const pendingRequestsCount = bookingRequests.filter(r => r.status === 'Pendiente').length;
@@ -617,12 +666,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
         {/* CONTENIDOS */}
         {activeTab === 'contenidos' && (
-          <div className="bg-white rounded-3xl border border-[#8CFF00]/25 p-8">
-            <h2 className="font-display text-2xl font-bold text-[#082D05] mb-6">Textos y Contenidos</h2>
-            <p className="text-sm text-neutral-600 mb-6">Próximamente: Edición de textos de página principal, descripciones de servicios, testimonios y más contenido dinámico.</p>
-            <div className="bg-[#F7F8EF] p-6 rounded-xl text-center text-neutral-500">
-              <FileText className="w-12 h-12 mx-auto mb-3 opacity-40" />
-            <p className="text-sm">Módulo en desarrollo...</p>
+          <div className="space-y-5">
+            <div>
+              <h2 className="font-display text-2xl font-bold text-[#082D05]">Contenido de la web</h2>
+              <p className="text-sm text-neutral-600 mt-1">Edita los bloques desde el móvil. Los cambios se guardan en el servidor y no en el navegador.</p>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              {contentBlocks.map((block) => (
+                <ContentBlockEditor key={block.id} block={block} onSave={saveContentBlock} />
+              ))}
             </div>
           </div>
         )}

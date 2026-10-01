@@ -328,8 +328,27 @@ const initDatabase = async () => {
       )
     `);
 
+    // Bloques editoriales reutilizables para la web pública.
+    await dbRun(`
+      CREATE TABLE IF NOT EXISTS content_blocks (
+        id TEXT PRIMARY KEY,
+        tenant_id TEXT DEFAULT 'default',
+        key TEXT,
+        type TEXT,
+        title TEXT,
+        subtitle TEXT,
+        body TEXT,
+        image TEXT,
+        buttonText TEXT,
+        buttonUrl TEXT,
+        sortOrder INTEGER DEFAULT 0,
+        enabled INTEGER DEFAULT 1,
+        updatedAt TEXT
+      )
+    `);
+
     // Tenant por defecto: se añade sin destruir datos existentes.
-    for (const table of TENANT_TABLES) {
+    for (const table of [...TENANT_TABLES, 'content_blocks']) {
       await ensureColumn(table, 'tenant_id', "TEXT DEFAULT 'default'");
       await dbRun(`UPDATE ${table} SET tenant_id = ? WHERE tenant_id IS NULL OR tenant_id = ''`, [TENANT_ID]);
     }
@@ -391,6 +410,22 @@ const initDatabase = async () => {
       );
     }
 
+    const contentCount = await dbGet('SELECT COUNT(*) AS c FROM content_blocks');
+    if (Number(contentCount?.c || 0) === 0) {
+      const defaults = [
+        ['hero', 'hero', 'Las Greenlanters Nails', 'Tus manos hablan por ti', 'Haz que destaquen.', '', 'Reservar cita', '#reservar', 1],
+        ['about', 'section', 'Sobre nosotros', '', 'Manicura, nail art y diseños personalizados.', '', '', '', 2],
+        ['booking', 'cta', 'Reserva tu cita', '', 'Elige tu servicio y solicita tu cita desde cualquier dispositivo.', '', 'Reservar ahora', '#reservar', 3],
+        ['social', 'social', 'Síguenos en Instagram', '', '@greenlanters.nails', '', 'Ver Instagram', '', 4]
+      ];
+      for (const [key, type, title, subtitle, body, image, buttonText, buttonUrl, sortOrder] of defaults) {
+        await dbRun(
+          'INSERT INTO content_blocks (id, tenant_id, key, type, title, subtitle, body, image, buttonText, buttonUrl, sortOrder, enabled, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)',
+          [`content_${key}`, TENANT_ID, key, type, title, subtitle, body, image, buttonText, buttonUrl, sortOrder, new Date().toISOString()]
+        );
+      }
+    }
+
     console.log('Base de datos inicializada correctamente');
   } catch (err) {
     console.error('Error inicializando BD:', err);
@@ -450,6 +485,52 @@ app.use('/api', (req, res, next) => {
 });
 
 // ==================== RUTAS API ====================
+
+// CONTENIDOS EDITORIALES
+app.get('/api/content', async (_req, res) => {
+  try {
+    const rows = await dbAll('SELECT * FROM content_blocks WHERE enabled = 1 ORDER BY sortOrder ASC, key ASC');
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/content', async (req, res) => {
+  try {
+    const { id, key, type, title, subtitle, body, image, buttonText, buttonUrl, sortOrder, enabled } = req.body;
+    const contentId = id || `content_${key || Date.now()}`;
+    await dbRun(
+      'INSERT INTO content_blocks (id, tenant_id, key, type, title, subtitle, body, image, buttonText, buttonUrl, sortOrder, enabled, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [contentId, TENANT_ID, key || contentId, type || 'section', title || '', subtitle || '', body || '', image || '', buttonText || '', buttonUrl || '', Number(sortOrder) || 0, enabled === false ? 0 : 1, new Date().toISOString()]
+    );
+    res.json({ success: true, id: contentId });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/content/:id', async (req, res) => {
+  try {
+    const { key, type, title, subtitle, body, image, buttonText, buttonUrl, sortOrder, enabled } = req.body;
+    await dbRun(
+      'UPDATE content_blocks SET key = ?, type = ?, title = ?, subtitle = ?, body = ?, image = ?, buttonText = ?, buttonUrl = ?, sortOrder = ?, enabled = ?, updatedAt = ? WHERE id = ?',
+      [key, type, title || '', subtitle || '', body || '', image || '', buttonText || '', buttonUrl || '', Number(sortOrder) || 0, enabled === false ? 0 : 1, new Date().toISOString(), req.params.id]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/content/:id', async (req, res) => {
+  try {
+    await dbRun('DELETE FROM content_blocks WHERE id = ?', [req.params.id]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // CITAS
 app.get('/api/appointments', async (req, res) => {
