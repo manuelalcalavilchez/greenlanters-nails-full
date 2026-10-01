@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { apiService } from '../../data/api';
 import { DEFAULT_CONFIG, DEFAULT_WORKING_HOURS, SalonConfig } from './adminTypes';
+import { staffTokenStorageKey } from '../../config/businessProfile';
 
 export const useStaffData = () => {
   const [salonConfig, setSalonConfig] = useState<SalonConfig>(DEFAULT_CONFIG);
@@ -63,7 +64,7 @@ export const useStaffData = () => {
   useEffect(() => {
     const load = () => reloadStaffData();
     window.addEventListener('greenlanters-staff-authenticated', load);
-    if (sessionStorage.getItem('greenlanters_staff_token')) load();
+    if (sessionStorage.getItem(staffTokenStorageKey)) load();
     return () => window.removeEventListener('greenlanters-staff-authenticated', load);
   }, []);
 

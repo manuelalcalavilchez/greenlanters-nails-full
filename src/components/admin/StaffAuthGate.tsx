@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { LockKeyhole } from 'lucide-react';
+import { staffTokenStorageKey } from '../../config/businessProfile';
 
 interface Props {
   children: React.ReactNode;
@@ -18,13 +19,13 @@ export const StaffAuthGate: React.FC<Props> = ({ children }) => {
       try {
         const status = await fetch('/api/staff/status').then(r => r.json());
         setInitialized(Boolean(status.initialized));
-        const token = sessionStorage.getItem('greenlanters_staff_token');
+        const token = sessionStorage.getItem(staffTokenStorageKey);
         if (token) {
           const probe = await fetch('/api/appointments', { headers: { Authorization: `Bearer ${token}` } });
           if (probe.ok) {
             setAuthenticated(true);
             window.dispatchEvent(new Event('greenlanters-staff-authenticated'));
-          } else sessionStorage.removeItem('greenlanters_staff_token');
+          } else sessionStorage.removeItem(staffTokenStorageKey);
         }
       } catch {
         setError('No se puede conectar con el servidor.');
@@ -53,7 +54,7 @@ export const StaffAuthGate: React.FC<Props> = ({ children }) => {
       setError(data.error || data.message || 'No se pudo acceder.');
       return;
     }
-    sessionStorage.setItem('greenlanters_staff_token', data.token);
+    sessionStorage.setItem(staffTokenStorageKey, data.token);
     setAuthenticated(true);
     window.dispatchEvent(new Event('greenlanters-staff-authenticated'));
   };

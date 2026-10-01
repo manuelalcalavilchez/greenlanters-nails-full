@@ -365,8 +365,9 @@ const initDatabase = async () => {
     }
 
     // Semilla inicial: una sola cabina/especialista y catálogo real del proyecto.
+    const seedDefaultTenant = TENANT_ID === 'default';
     const serviceCount = await dbGet('SELECT COUNT(*) AS c FROM services');
-    if (Number(serviceCount?.c || 0) === 0) {
+    if (seedDefaultTenant && Number(serviceCount?.c || 0) === 0) {
       const seedServices = [
         ['unas-gel', 'Uñas en gel', 'gel', 'Manicura y diseños realizados con técnica de gel.', 1],
         ['unas-poligel', 'Uñas en poligel', 'poligel', 'Diseños y trabajos realizados con técnica de poligel.', 2],
@@ -382,7 +383,7 @@ const initDatabase = async () => {
     }
 
     const specialistCount = await dbGet('SELECT COUNT(*) AS c FROM specialists');
-    if (Number(specialistCount?.c || 0) === 0) {
+    if (seedDefaultTenant && Number(specialistCount?.c || 0) === 0) {
       await dbRun(
         'INSERT INTO specialists (id, name, role, photo, description, active) VALUES (?, ?, ?, ?, ?, 1)',
         ['any', 'Cualquiera Disponible', 'Equipo Greenlanters', '', 'Asignación automática a la cabina disponible.']
@@ -390,7 +391,7 @@ const initDatabase = async () => {
     }
 
     const configCount = await dbGet('SELECT COUNT(*) AS c FROM salon_config');
-    if (Number(configCount?.c || 0) === 0) {
+    if (seedDefaultTenant && Number(configCount?.c || 0) === 0) {
       const defaultHours = [
         { day: 'Lunes', open: '10:00', close: '20:00', enabled: true },
         { day: 'Martes', open: '10:00', close: '20:00', enabled: true },
@@ -422,7 +423,7 @@ const initDatabase = async () => {
     }
 
     const contentCount = await dbGet('SELECT COUNT(*) AS c FROM content_blocks');
-    if (Number(contentCount?.c || 0) === 0) {
+    if (seedDefaultTenant && Number(contentCount?.c || 0) === 0) {
       const defaults = [
         ['hero', 'hero', 'Las Greenlanters Nails', 'Tus manos hablan por ti', 'Haz que destaquen.', '', 'Reservar cita', '#reservar', 1],
         ['about', 'section', 'Sobre nosotros', '', 'Manicura, nail art y diseños personalizados.', '', '', '', 2],

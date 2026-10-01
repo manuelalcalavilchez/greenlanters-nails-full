@@ -38,3 +38,5 @@ export const businessProfile: BusinessProfile = {
   labels: { business: 'Salón', professional: 'Especialista', service: 'Servicio', appointment: 'Cita', staff: 'Cabina Staff', gallery: 'Galería' },
   features: { ar: true, customStudio: true, giftCards: true }
 };
+
+export const staffTokenStorageKey = `${businessProfile.id}_staff_token`;

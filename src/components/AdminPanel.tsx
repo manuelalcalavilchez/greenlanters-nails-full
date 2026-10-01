@@ -4,7 +4,7 @@ import { Appointment, CustomDesign } from '../types';
 import StaffAuthGate from './admin/StaffAuthGate';
 import StaffPasswordModal from './admin/StaffPasswordModal';
 import { apiService } from '../data/api';
-import { businessProfile } from '../config/businessProfile';
+import { businessProfile, staffTokenStorageKey } from '../config/businessProfile';
 import { validateAppointmentStatusChange, buildAppointmentFromBookingRequest } from './admin/bookingWorkflow';
 import ContentBlockEditor from './admin/ContentBlockEditor';
 import AdminTabBar, { AdminTabId } from './admin/AdminTabBar';
@@ -43,7 +43,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   } = useStaffData();
 
   const handleLogout = () => {
-    sessionStorage.removeItem('greenlanters_staff_token');
+    sessionStorage.removeItem(staffTokenStorageKey);
     window.location.reload();
   };
 
@@ -139,14 +139,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       alert('Para confirmar una cita primero hay que tener fecha y hora solicitadas.');
       return;
     }
-    const newAppointment = buildAppointmentFromBookingRequest(request);
+    const newAppointment = buildAppointmentFromBookingRequest(request, services);
 
     const result = await apiService.createAppointment(newAppointment);
     if (result?.success) {
       setAppointments(prev => [newAppointment, ...prev]);
       await apiService.updateBookingRequest(request.id, 'Confirmada');
       await reloadBookingRequests();
-      alert(`Cita creada con localizador ${newAppointment.locator}. Recuerda ajustar servicios, especialista y precio en la pestaña Citas.`);
+      alert(`Cita creada con localizador ${newAppointment.locator}.${newAppointment.serviceIds.length ? '' : ' El servicio no se pudo asociar automáticamente y queda pendiente de revisión.'}`);
     } else {
       alert('No se pudo crear la cita. Comprueba que la API está en marcha.');
     }

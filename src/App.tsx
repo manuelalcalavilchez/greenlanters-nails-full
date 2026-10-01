@@ -29,8 +29,9 @@ export default function App() {
     return NAIL_STYLES_CATALOG;
   });
 
+  const giftCardsStorageKey = businessProfile.id + '_giftcards';
   const [giftCards, setGiftCards] = useState<GiftCard[]>(() => {
-    const saved = localStorage.getItem('greenlanters_giftcards');
+    const saved = localStorage.getItem(giftCardsStorageKey);
     if (saved) {
       try { return JSON.parse(saved); } catch (e) { /* ignore */ }
     }
@@ -59,8 +60,8 @@ export default function App() {
   }, [catalogStyles]);
 
   useEffect(() => {
-    localStorage.setItem('greenlanters_giftcards', JSON.stringify(giftCards));
-  }, [giftCards]);
+    localStorage.setItem(giftCardsStorageKey, JSON.stringify(giftCards));
+  }, [giftCards, giftCardsStorageKey]);
 
   const handleAddBooking = async (appt: Appointment) => {
     const result = await apiService.createAppointment(appt);
@@ -123,14 +124,14 @@ export default function App() {
             setActiveTab={setActiveTab} 
           />
         )}
-        {activeTab === 'livear' && (
+        {activeTab === 'livear' && businessProfile.features.ar && (
           <LiveARCameraCanvas 
             onSaveDesign={handleSaveDesign} 
             setActiveTab={setActiveTab}
             catalogStyles={catalogStyles}
           />
         )}
-        {activeTab === 'atelier' && (
+        {activeTab === 'atelier' && businessProfile.features.customStudio && (
           <NailStudioEditor 
             onSaveDesign={handleSaveDesign} 
             setActiveTab={setActiveTab}

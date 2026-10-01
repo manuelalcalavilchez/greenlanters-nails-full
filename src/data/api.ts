@@ -1,8 +1,9 @@
 // Servicio API para comunicarse con el servidor Express
+import { staffTokenStorageKey } from '../config/businessProfile';
 const API_BASE = '/api';
 
 const staffAuthHeaders = (): Record<string, string> => {
-  const token = sessionStorage.getItem('greenlanters_staff_token');
+  const token = sessionStorage.getItem(staffTokenStorageKey);
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 

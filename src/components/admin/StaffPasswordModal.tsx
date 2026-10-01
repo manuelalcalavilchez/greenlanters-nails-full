@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { KeyRound, X } from 'lucide-react';
+import { staffTokenStorageKey } from '../../config/businessProfile';
 
 export default function StaffSecurityModal({ onClose }: { onClose: () => void }) {
   const [currentValue, setCurrentValue] = useState('');
@@ -15,7 +16,7 @@ export default function StaffSecurityModal({ onClose }: { onClose: () => void })
     setOk('');
     setSaving(true);
     try {
-      const token = sessionStorage.getItem('greenlanters_staff_token');
+      const token = sessionStorage.getItem(staffTokenStorageKey);
       const endpoint = '/api/staff/' + 'change-' + 'password';
       const body = {
         ['current' + 'Password']: currentValue,

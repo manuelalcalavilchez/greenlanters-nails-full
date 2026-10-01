@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { BookmarkCheck, Search, Calendar, Phone, Trash2, Download, Gift, Sparkles, Printer, Check, Lock } from 'lucide-react';
 import { Appointment, GiftCard } from '../types';
-import { SPECIALISTS, SERVICES } from '../data/mockData';
+import { businessProfile } from '../config/businessProfile';
+import { businessProfessionals, businessServices } from '../config/businessCatalog';
 
 interface MyBookingsViewProps {
   appointments: Appointment[];
@@ -124,18 +125,18 @@ export const MyBookingsView: React.FC<MyBookingsViewProps> = ({
   };
 
   const downloadICS = (appt: Appointment) => {
-    const specialistObj = SPECIALISTS.find(s => s.id === appt.specialistId);
-    const serviceNames = appt.serviceIds.map(id => SERVICES.find(s => s.id === id)?.name).join(', ');
+    const specialistObj = businessProfessionals.find(s => s.id === appt.specialistId);
+    const serviceNames = appt.serviceIds.map(id => businessServices.find(s => s.id === id)?.name).join(', ');
 
     const icsContent = `BEGIN:VCALENDAR
 VERSION:2.0
-PRODID:-//Las Greenlanters Nails//Citas//ES
+PRODID:-//${businessProfile.name}//Citas//ES
 BEGIN:VEVENT
-SUMMARY:Cita Manicura - Las Greenlanters Nails
-DESCRIPTION:Servicios: ${serviceNames}. Especialista: ${specialistObj?.name || 'Cualquiera'}. Localizador: ${appt.locator}
+SUMMARY:${businessProfile.labels.appointment} - ${businessProfile.name}
+DESCRIPTION:Servicios: ${serviceNames}. ${businessProfile.labels.professional}: ${specialistObj?.name || 'Cualquiera'}. Localizador: ${appt.locator}
 DTSTART:${appt.date.replace(/-/g, '')}T${appt.time.replace(':', '')}00Z
 DTEND:${appt.date.replace(/-/g, '')}T${(parseInt(appt.time.split(':')[0]) + 1).toString().padStart(2, '0')}${appt.time.split(':')[1]}00Z
-LOCATION:Paseo de la Elegancia 42, Madrid
+LOCATION:${businessProfile.location}
 STATUS:CONFIRMED
 END:VEVENT
 END:VCALENDAR`;
@@ -208,8 +209,8 @@ END:VCALENDAR`;
                 </div>
               ) : (
                 filteredAppointments.map((appt) => {
-                  const staffObj = SPECIALISTS.find(s => s.id === appt.specialistId);
-                  const serviceNames = appt.serviceIds.map(id => SERVICES.find(s => s.id === id)?.name).join(', ');
+                  const staffObj = businessProfessionals.find(s => s.id === appt.specialistId);
+                  const serviceNames = appt.serviceIds.map(id => businessServices.find(s => s.id === id)?.name).join(', ');
 
                   return (
                     <div key={appt.id} className="bg-white rounded-3xl border border-[#8CFF00]/30 p-6 shadow-sm flex flex-col justify-between space-y-4">
