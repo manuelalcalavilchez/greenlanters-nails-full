@@ -10,6 +10,9 @@ import AdminTabBar, { AdminTabId } from './admin/AdminTabBar';
 import GalleryPanel from './admin/GalleryPanel';
 import ServicesPanel from './admin/ServicesPanel';
 import SpecialistsPanel from './admin/SpecialistsPanel';
+import RequestsPanel from './admin/RequestsPanel';
+import AppointmentsPanel from './admin/AppointmentsPanel';
+import DesignsPanel from './admin/DesignsPanel';
 import { AdminPanelProps, DEFAULT_CONFIG, DEFAULT_WORKING_HOURS, SalonConfig } from './admin/adminTypes';
 
 
@@ -565,256 +568,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
         {/* SOLICITUDES DE CITA */}
         {activeTab === 'requests' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-3xl border border-[#8CFF00]/25 shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-neutral-100 flex items-center justify-between">
-                <h2 className="font-display text-2xl font-bold text-[#082D05]">Solicitudes de Cita</h2>
-                <span className="text-xs font-semibold text-neutral-500">{pendingRequestsCount} pendiente(s)</span>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[#F7F8EF] border-b border-neutral-200 text-[#082D05] uppercase tracking-wider font-semibold">
-                    <tr>
-                      <th className="p-4">Cliente</th>
-                      <th className="p-4">Contacto</th>
-                      <th className="p-4">Servicio</th>
-                      <th className="p-4">Fecha/Hora Preferida</th>
-                      <th className="p-4">Notas</th>
-                      <th className="p-4">Estado</th>
-                      <th className="p-4 text-right">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-100">
-                    {bookingRequests.length === 0 ? (
-                      <tr>
-                        <td colSpan={7} className="p-8 text-center text-neutral-400">
-                          No hay solicitudes de cita todavía.
-                        </td>
-                      </tr>
-                    ) : (
-                      bookingRequests.map((req) => (
-                        <tr key={req.id} className="hover:bg-neutral-50/50 transition-colors align-top">
-                          <td className="p-4 font-bold text-[#082D05]">{req.clientName}</td>
-                          <td className="p-4">
-                            <span className="block">{req.clientPhone}</span>
-                            <span className="block text-[11px] text-neutral-500">{req.clientEmail}</span>
-                          </td>
-                          <td className="p-4 font-medium">{req.serviceType}</td>
-                          <td className="p-4 font-medium">{req.preferredDate || '—'} {req.preferredTime ? `· ${req.preferredTime}h` : ''}</td>
-                          <td className="p-4 max-w-xs truncate text-neutral-600">{req.notes || '—'}</td>
-                          <td className="p-4">
-                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase ${
-                              req.status === 'Pendiente' ? 'bg-amber-100 text-amber-800' :
-                              req.status === 'Confirmada' ? 'bg-[#8CFF00]/20 text-[#082D05]' :
-                              req.status === 'Completada' ? 'bg-[#082D05] text-[#F7F8EF]' :
-                              'bg-neutral-100 text-neutral-600'
-                            }`}>
-                              {req.status}
-                            </span>
-                          </td>
-                          <td className="p-4 text-right space-x-2 whitespace-nowrap">
-                            {req.status === 'Pendiente' && (
-                              <button
-                                onClick={() => confirmBookingRequest(req)}
-                                className="px-2.5 py-1 bg-[#082D05] text-[#F7F8EF] rounded text-[11px] font-semibold hover:bg-[#176B00]"
-                              >
-                                Confirmar
-                              </button>
-                            )}
-                            {req.status !== 'Completada' && (
-                              <button
-                                onClick={() => completeBookingRequest(req.id)}
-                                className="px-2.5 py-1 bg-[#8CFF00]/20 text-[#082D05] rounded text-[11px] font-semibold hover:bg-[#8CFF00]/30"
-                              >
-                                Completar
-                              </button>
-                            )}
-                            <button
-                              onClick={() => deleteBookingRequest(req.id)}
-                              className="px-2.5 py-1 bg-rose-100 text-rose-700 rounded text-[11px] font-semibold hover:bg-rose-200"
-                            >
-                              Eliminar
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
+          <RequestsPanel bookingRequests={bookingRequests} pendingRequestsCount={pendingRequestsCount} confirmBookingRequest={confirmBookingRequest} completeBookingRequest={completeBookingRequest} deleteBookingRequest={deleteBookingRequest} />
         )}
 
         {/* AGENDA - Lo que ya existía */}
         {activeTab === 'agenda' && (
-          <div className="space-y-8">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              <div className="bg-white p-6 rounded-2xl border border-[#8CFF00]/30 shadow-sm">
-                <span className="text-xs font-semibold text-neutral-500 block mb-1">Facturación Acumulada</span>
-                <span className="font-display text-3xl font-bold text-[#082D05]">{totalBilling}€</span>
-              </div>
-              <div className="bg-white p-6 rounded-2xl border border-[#8CFF00]/30 shadow-sm">
-                <span className="text-xs font-semibold text-neutral-500 block mb-1">Citas Totales</span>
-                <span className="font-display text-3xl font-bold text-[#082D05]">{appointments.length}</span>
-              </div>
-              <div className="bg-white p-6 rounded-2xl border border-[#8CFF00]/30 shadow-sm">
-                <span className="text-xs font-semibold text-neutral-500 block mb-1">Citas Completadas</span>
-                <span className="font-display text-3xl font-bold text-[#8CFF00]">{completedCount}</span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 overflow-x-auto pb-2">
-              <span className="text-xs font-semibold text-[#082D05] flex items-center gap-1.5 shrink-0">
-                <Filter className="w-3.5 h-3.5" /> Filtrar:
-              </span>
-              {[{ id: 'all', name: 'Todas' }, ...specialists.map(s => ({ id: s.id, name: s.name }))].map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => setSelectedTech(t.id)}
-                  className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg border transition-all shrink-0 ${
-                    selectedTech === t.id ? 'bg-[#082D05] text-[#F7F8EF] border-[#082D05]' : 'bg-white text-[#082D05] border-neutral-200 hover:border-neutral-300'
-                  }`}
-                >
-                  {t.name}
-                </button>
-              ))}
-            </div>
-
-            <div className="bg-white rounded-3xl border border-[#8CFF00]/25 shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[#F7F8EF] border-b border-neutral-200 text-[#082D05] uppercase tracking-wider font-semibold">
-                    <tr>
-                      <th className="p-4">Localizador</th>
-                      <th className="p-4">Cliente</th>
-                      <th className="p-4">Servicios</th>
-                      <th className="p-4">Especialista</th>
-                      <th className="p-4">Fecha & Hora</th>
-                      <th className="p-4">Total</th>
-                      <th className="p-4">Estado</th>
-                      <th className="p-4 text-right">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-100">
-                    {filteredAppointments.length === 0 ? (
-                      <tr>
-                        <td colSpan={8} className="p-8 text-center text-neutral-400">
-                          No hay citas con este filtro.
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredAppointments.map((appt) => {
-                        const staffObj = specialists.find(s => s.id === appt.specialistId);
-                        const serviceNames = appt.serviceIds.map(id => services.find(s => s.id === id)?.name).join(', ');
-
-                        return (
-                          <tr key={appt.id} className="hover:bg-neutral-50/50 transition-colors">
-                            <td className="p-4 font-mono font-bold text-[#8CFF00]">{appt.locator}</td>
-                            <td className="p-4">
-                              <span className="font-bold block text-[#082D05]">{appt.clientName}</span>
-                              <span className="text-[11px] text-neutral-500">{appt.clientPhone}</span>
-                            </td>
-                            <td className="p-4 max-w-xs truncate text-neutral-700">{serviceNames}</td>
-                            <td className="p-4 font-medium">{staffObj?.name || 'Cualquiera'}</td>
-                <td className="p-4 font-medium">{appt.date} · {appt.time}h</td>
-                            <td className="p-4 font-bold font-display">{appt.totalPrice}€</td>
-                            <td className="p-4">
-                              <span className={`px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase ${
-                                appt.status === 'Confirmada' ? 'bg-[#8CFF00]/20 text-[#082D05]' :
-                                appt.status === 'Completada' ? 'bg-[#082D05] text-[#F7F8EF]' :
-                                'bg-rose-100 text-rose-700'
-                              }`}>
-                                {appt.status}
-                              </span>
-                            </td>
-                            <td className="p-4 text-right space-x-2">
-                              {appt.status !== 'Completada' && (
-                                <button
-                                  onClick={() => updateAppointmentStatus(appt.id, 'Completada')}
-                                  className="px-2.5 py-1 bg-[#082D05] text-[#F7F8EF] rounded text-[11px] font-semibold hover:bg-[#176B00]"
-                                >
-                                  Completar
-                                </button>
-                              )}
-                              {appt.status !== 'Cancelada' && (
-                                <button
-                                  onClick={() => updateAppointmentStatus(appt.id, 'Cancelada')}
-                                  className="px-2.5 py-1 bg-neutral-200 text-neutral-800 rounded text-[11px] font-semibold hover:bg-neutral-300"
-                                >
-                                  Cancelar
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
+          <AppointmentsPanel appointments={appointments} filteredAppointments={filteredAppointments} specialists={specialists} services={services} selectedTech={selectedTech} totalBilling={totalBilling} completedCount={completedCount} setSelectedTech={setSelectedTech} updateAppointmentStatus={updateAppointmentStatus} />
         )}
 
         {/* DISEÑOS */}
         {activeTab === 'designs' && (
-          <div className="space-y-6">
-            <h2 className="font-display text-2xl font-bold text-[#082D05]">Diseños del Atelier</h2>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {customDesigns.length === 0 ? (
-                <div className="col-span-full py-16 text-center text-neutral-400 bg-white rounded-3xl border border-neutral-200">
-                  No hay diseños personalizados creados.
-                </div>
-              ) : (
-                customDesigns.map((des) => (
-                  <div key={des.id} className="bg-white rounded-2xl overflow-hidden border border-[#8CFF00]/30 shadow-sm flex flex-col">
-                    <div className="aspect-[4/3] bg-neutral-900 relative overflow-hidden flex items-center justify-center p-4">
-                      <img 
-                        src={des.imageBase64} 
-                        alt="Boceto uña" 
-                        className="max-h-full object-contain rounded-lg shadow-md border border-[#8CFF00]/40" 
-                      />
-                      <span className="absolute top-3 left-3 px-2.5 py-1 bg-[#082D05] text-[#F7F8EF] font-mono text-[10px] rounded-md">
-                        {des.code}
-                      </span>
-                    </div>
-
-                    <div className="p-5 flex flex-col flex-1 justify-between space-y-4">
-                      <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <h3 className="font-display font-bold text-[#082D05]">{des.clientName}</h3>
-                        </div>
-                        <p className="text-xs text-neutral-600 bg-neutral-50 p-2.5 rounded-xl border border-neutral-200 italic">
-                          "{des.notes}"
-                        </p>
-                      </div>
-
-                      <div className="space-y-3 pt-3 border-t border-neutral-100">
-                        <select
-                          value={des.status}
-                          onChange={(e) => updateDesignStatus(des.id, e.target.value as any)}
-                          className="w-full text-xs font-semibold px-2.5 py-1 rounded-lg bg-[#F7F8EF] border border-[#8CFF00]/40 text-[#082D05]"
-                        >
-                          <option value="Pendiente">Pendiente</option>
-                          <option value="Preparado en cabina">Preparado en cabina</option>
-                          <option value="Realizado">Realizado</option>
-                        </select>
-
-                        <button
-                          onClick={() => setSelectedDesignModal(des)}
-                          className="w-full py-2 bg-neutral-100 hover:bg-neutral-200 text-[#082D05] text-xs font-semibold rounded-xl"
-                        >
-                          Ver Detalles
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+          <DesignsPanel customDesigns={customDesigns} selectedDesignModal={selectedDesignModal} updateDesignStatus={updateDesignStatus} setSelectedDesignModal={setSelectedDesignModal} />
         )}
 
             {/* Modal diseño */}
