@@ -1,26 +1,17 @@
 import React from 'react';
 import { Appointment, CustomDesign, NailCatalogStyle } from '../../types';
 import { businessProfile } from '../../config/businessProfile';
+import { BusinessConfig, BusinessProfessional, BusinessService } from '../../domain/businessTypes';
 
-export interface SalonConfig {
-  name: string;
-  description: string;
-  phone: string;
-  email: string;
-  address: string;
-  hours: string;
-  whatsapp: string;
-  logo: string;
-  coverPhoto: string;
-  calendarPublic: boolean;
-  workingHours: Array<{ day: string; open: string; close: string; enabled: boolean }>;
-  blockedSlots: string[];
-  vacations: string[];
+export type { BusinessConfig, BusinessProfessional, BusinessService } from '../../domain/businessTypes';
+
+export interface SalonConfig extends Omit<BusinessConfig, 'productOptions'> {
+  // Campos específicos heredados del primer vertical; el motor puede sustituirlos
+  // por opciones equivalentes del negocio sin cambiar su contrato base.
   nailShapes: string[];
   nailLengths: string[];
   nailStyles: string[];
   products: string[];
-  colors: { primary: string; accent: string; background: string };
 }
 
 export interface AdminPanelProps {
