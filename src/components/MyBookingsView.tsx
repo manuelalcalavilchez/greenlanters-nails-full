@@ -173,15 +173,17 @@ END:VCALENDAR`;
               <span>Consultar Mis Citas</span>
             </button>
 
-            <button
-              onClick={() => setActiveSubTab('giftcards')}
-              className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all flex items-center gap-2 ${
-                activeSubTab === 'giftcards' ? 'bg-[#082D05] text-[#F7F8EF] shadow-sm' : 'text-[#082D05]/70 hover:text-[#082D05]'
-              }`}
-            >
-              <Gift className="w-4 h-4" />
-              <span>Tarjetas Regalo</span>
-            </button>
+            {businessProfile.features.giftCards && (
+              <button
+                onClick={() => setActiveSubTab('giftcards')}
+                className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all flex items-center gap-2 ${
+                  activeSubTab === 'giftcards' ? 'bg-[#082D05] text-[#F7F8EF] shadow-sm' : 'text-[#082D05]/70 hover:text-[#082D05]'
+                }`}
+              >
+                <Gift className="w-4 h-4" />
+                <span>Tarjetas Regalo</span>
+              </button>
+            )}
           </div>
         </div>
 
