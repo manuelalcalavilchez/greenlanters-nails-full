@@ -5,7 +5,7 @@ import StaffAuthGate from './admin/StaffAuthGate';
 import StaffPasswordModal from './admin/StaffPasswordModal';
 import { apiService } from '../data/api';
 import { businessProfile } from '../config/businessProfile';
-import { assertAppointmentTransition } from './admin/appointmentState';
+import { validateAppointmentStatusChange, buildAppointmentFromBookingRequest } from './admin/bookingWorkflow';
 import ContentBlockEditor from './admin/ContentBlockEditor';
 import AdminTabBar, { AdminTabId } from './admin/AdminTabBar';
 import GalleryPanel from './admin/GalleryPanel';
@@ -120,7 +120,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     const current = appointments.find(a => a.id === id);
     if (!current) return;
     try {
-      assertAppointmentTransition(current.status, status);
+      validateAppointmentStatusChange(current.status, status);
       const result = await apiService.updateAppointment(id, { status });
       if (result?.success) setAppointments(prev => prev.map(a => a.id === id ? { ...a, status } : a));
     } catch (error) {
@@ -134,38 +134,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   };
 
   // SOLICITUDES DE CITA
-  const generateLocator = () => `LGN-${Math.floor(1000 + Math.random() * 9000)}`;
-
   const confirmBookingRequest = async (request: any) => {
     if (!request.preferredDate || !request.preferredTime) {
       alert('Para confirmar una cita primero hay que tener fecha y hora solicitadas.');
       return;
     }
-    const locator = generateLocator();
-    const newAppointment: Appointment = {
-      id: `appt_${Date.now()}`,
-      locator,
-      serviceIds: [],
-      addonIds: [],
-      specialistId: 'any',
-      date: request.preferredDate,
-      time: request.preferredTime,
-      totalPrice: 0,
-      totalDuration: 0,
-      clientName: request.clientName,
-      clientPhone: request.clientPhone,
-      clientEmail: request.clientEmail,
-      notes: `Solicitud: ${request.serviceType || ''}. ${request.notes || ''}`.trim(),
-      status: 'Confirmada',
-      createdAt: new Date().toISOString()
-    };
+    const newAppointment = buildAppointmentFromBookingRequest(request);
 
     const result = await apiService.createAppointment(newAppointment);
     if (result?.success) {
       setAppointments(prev => [newAppointment, ...prev]);
       await apiService.updateBookingRequest(request.id, 'Confirmada');
       await reloadBookingRequests();
-      alert(`Cita creada con localizador ${locator}. Recuerda ajustar servicios, especialista y precio en la pestaña Citas.`);
+      alert(`Cita creada con localizador ${newAppointment.locator}. Recuerda ajustar servicios, especialista y precio en la pestaña Citas.`);
     } else {
       alert('No se pudo crear la cita. Comprueba que la API está en marcha.');
     }
