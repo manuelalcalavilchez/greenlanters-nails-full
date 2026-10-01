@@ -538,6 +538,17 @@ app.delete('/api/content/:id', async (req, res) => {
 });
 
 // CITAS
+const APPOINTMENT_STATUS_TRANSITIONS = {
+  Pendiente: ['Confirmada', 'Cancelada'],
+  Confirmada: ['Completada', 'Cancelada'],
+  Completada: [],
+  Cancelada: []
+};
+
+const isAppointmentStatus = (status) => Object.prototype.hasOwnProperty.call(APPOINTMENT_STATUS_TRANSITIONS, status);
+
+const canTransitionAppointmentStatus = (from, to) => from === to || Boolean(APPOINTMENT_STATUS_TRANSITIONS[from]?.includes(to));
+
 app.get('/api/appointments', async (req, res) => {
   try {
     const appointments = await dbAll('SELECT * FROM appointments ORDER BY date DESC, time DESC');
@@ -578,10 +589,21 @@ app.post('/api/appointments', async (req, res) => {
 app.put('/api/appointments/:id', async (req, res) => {
   try {
     const { status, notes } = req.body;
-    
+    if (!isAppointmentStatus(status)) {
+      return res.status(400).json({ error: 'Estado de cita no válido.' });
+    }
+
+    const current = await dbGet('SELECT * FROM appointments WHERE id = ?', [req.params.id]);
+    if (!current) return res.status(404).json({ error: 'Cita no encontrada.' });
+    if (!canTransitionAppointmentStatus(current.status, status)) {
+      return res.status(409).json({
+        error: `Transición de cita no permitida: ${current.status} → ${status}`
+      });
+    }
+
     await dbRun(
       'UPDATE appointments SET status = ?, notes = ?, updatedAt = ? WHERE id = ?',
-      [status, notes || '', new Date().toISOString(), req.params.id]
+      [status, notes ?? current.notes ?? '', new Date().toISOString(), req.params.id]
     );
 
     if (status === 'Cancelada') {
