@@ -1,4 +1,4 @@
-export type ServiceCategory = 'manicura' | 'gel_acrigel' | 'kapping' | 'pedicura' | 'duos' | 'esmaltado';
+export type ServiceCategory = string;
 
 export interface ServiceItem {
   id: string;
@@ -20,7 +20,10 @@ export interface Specialist {
   id: string;
   name: string;
   role: string;
-  avatar: string;
+  avatar?: string;
+  photo?: string;
+  description?: string;
+  active?: boolean;
 }
 
 export interface Appointment {
