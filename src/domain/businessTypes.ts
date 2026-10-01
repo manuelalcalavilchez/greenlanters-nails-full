@@ -18,6 +18,21 @@ export interface BusinessProfessional {
   active?: boolean;
 }
 
+export interface BusinessAddon {
+  id: string;
+  name: string;
+  durationMinutes: number;
+  price: number;
+  description?: string;
+  active?: boolean;
+}
+
+export interface BusinessCatalog {
+  services: BusinessService[];
+  addons: BusinessAddon[];
+  professionals: BusinessProfessional[];
+}
+
 export interface BusinessConfig {
   name: string;
   description: string;
