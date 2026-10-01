@@ -12,6 +12,7 @@ import { MyBookingsView } from './components/MyBookingsView';
 import { Appointment, CustomDesign, GiftCard, NailCatalogStyle } from './types';
 import { NAIL_STYLES_CATALOG } from './data/mockData';
 import { apiService } from './data/api';
+import { businessProfile } from './config/businessProfile';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('home');
@@ -21,7 +22,7 @@ export default function App() {
   const [isLoadingData, setIsLoadingData] = useState<boolean>(true);
 
   const [catalogStyles, setCatalogStyles] = useState<NailCatalogStyle[]>(() => {
-    const saved = localStorage.getItem('greenlanters_catalog_styles');
+    const saved = localStorage.getItem(businessProfile.id + '_catalog_styles');
     if (saved) {
       try { return JSON.parse(saved); } catch (e) { /* ignore */ }
     }
@@ -54,7 +55,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('greenlanters_catalog_styles', JSON.stringify(catalogStyles));
+    localStorage.setItem(businessProfile.id + '_catalog_styles', JSON.stringify(catalogStyles));
   }, [catalogStyles]);
 
   useEffect(() => {

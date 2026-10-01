@@ -490,7 +490,7 @@ END:VCALENDAR`;
 
             <h2 className="font-display text-3xl font-bold text-[#082D05]">¡Cita Confirmada con Éxito!</h2>
             <p className="text-sm text-[#082D05]/70">
-              Te esperamos en Las Greenlanters Nails. Hemos registrado tu reserva correctamente.
+              Te esperamos en {businessProfile.name}. Hemos registrado tu reserva correctamente.
             </p>
 
             <div className="p-6 bg-[#F7F8EF] rounded-2xl border border-[#8CFF00]/40 max-w-md mx-auto space-y-3 text-left">
