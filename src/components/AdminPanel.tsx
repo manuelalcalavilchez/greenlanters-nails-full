@@ -5,6 +5,7 @@ import StaffAuthGate from './admin/StaffAuthGate';
 import StaffPasswordModal from './admin/StaffPasswordModal';
 import { apiService } from '../data/api';
 import { businessProfile } from '../config/businessProfile';
+import { assertAppointmentTransition } from './admin/appointmentState';
 import ContentBlockEditor from './admin/ContentBlockEditor';
 import AdminTabBar, { AdminTabId } from './admin/AdminTabBar';
 import GalleryPanel from './admin/GalleryPanel';
@@ -187,8 +188,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   };
 
   const updateAppointmentStatus = async (id: string, status: 'Confirmada' | 'Completada' | 'Cancelada') => {
-    setAppointments(prev => prev.map(a => a.id === id ? { ...a, status } : a));
-    await apiService.updateAppointment(id, { status });
+    const current = appointments.find(a => a.id === id);
+    if (!current) return;
+    try {
+      assertAppointmentTransition(current.status, status);
+      const result = await apiService.updateAppointment(id, { status });
+      if (result?.success) setAppointments(prev => prev.map(a => a.id === id ? { ...a, status } : a));
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'No se pudo cambiar el estado de la cita.');
+    }
   };
 
   const updateDesignStatus = async (id: string, status: 'Pendiente' | 'Preparado en cabina' | 'Realizado') => {
