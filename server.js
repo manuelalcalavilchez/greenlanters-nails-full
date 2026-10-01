@@ -25,6 +25,8 @@ app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 fs.mkdirSync(DATA_DIR, { recursive: true });
 const dbPath = path.join(DATA_DIR, 'greenlanters.db');
+const TENANT_ID = process.env.TENANT_ID || 'default';
+const TENANT_TABLES = new Set(['appointments', 'custom_designs', 'salon_config', 'services', 'specialists', 'booking_requests', 'gallery']);
 const AUTH_FILE = path.join(DATA_DIR, 'staff-auth.json');
 const TOKEN_SECRET = process.env.STAFF_TOKEN_SECRET || crypto.randomBytes(32).toString('hex');
 
@@ -125,23 +127,52 @@ const sendEmail = async ({ to, subject, templateName, vars }) => {
   }
 };
 
-// Promisify db methods
+// Promisify db methods + aislamiento por tenant.
+const scopeTenantQuery = (sql, params = []) => {
+  const text = String(sql);
+  const tableMatch = text.match(/\b(?:FROM|UPDATE|INTO)\s+([a-z_]+)\b/i);
+  const table = tableMatch?.[1]?.toLowerCase();
+  if (!table || !TENANT_TABLES.has(table) || /\btenant_id\b/i.test(text)) return { sql: text, params };
+
+  if (/^\s*SELECT\b/i.test(text)) {
+    if (/\bWHERE\b/i.test(text)) return { sql: text.replace(/\bWHERE\b/i, 'WHERE tenant_id = ? AND '), params: [TENANT_ID, ...params] };
+    const marker = text.search(/\b(ORDER BY|GROUP BY|LIMIT|HAVING)\b/i);
+    if (marker >= 0) return { sql: text.slice(0, marker) + 'WHERE tenant_id = ? ' + text.slice(marker), params: [TENANT_ID, ...params] };
+    return { sql: text + ' WHERE tenant_id = ?', params: [...params, TENANT_ID] };
+  }
+
+  if (/^\s*INSERT\b/i.test(text)) {
+    const m = text.match(/^(\s*INSERT\s+INTO\s+[a-z_]+\s*)\(([^)]+)\)(\s*VALUES\s*)\(([^)]+)\)/i);
+    if (m) return { sql: m[1] + '(tenant_id, ' + m[2] + ')' + m[3] + '(?, ' + m[4] + ')', params: [TENANT_ID, ...params] };
+  }
+
+  if (/^\s*UPDATE\b/i.test(text) || /^\s*DELETE\b/i.test(text)) {
+    if (/\bWHERE\b/i.test(text)) return { sql: text.replace(/\bWHERE\b/i, 'WHERE tenant_id = ? AND '), params: [TENANT_ID, ...params] };
+    return { sql: text + ' WHERE tenant_id = ?', params: [TENANT_ID, ...params] };
+  }
+
+  return { sql: text, params };
+};
+
 const dbRun = (sql, params = []) => new Promise((resolve, reject) => {
-  db.run(sql, params, function(err) {
+  const scoped = scopeTenantQuery(sql, params);
+  db.run(scoped.sql, scoped.params, function(err) {
     if (err) reject(err);
     else resolve(this);
   });
 });
 
 const dbGet = (sql, params = []) => new Promise((resolve, reject) => {
-  db.get(sql, params, (err, row) => {
+  const scoped = scopeTenantQuery(sql, params);
+  db.get(scoped.sql, scoped.params, (err, row) => {
     if (err) reject(err);
     else resolve(row);
   });
 });
 
 const dbAll = (sql, params = []) => new Promise((resolve, reject) => {
-  db.all(sql, params, (err, rows) => {
+  const scoped = scopeTenantQuery(sql, params);
+  db.all(scoped.sql, scoped.params, (err, rows) => {
     if (err) reject(err);
     else resolve(rows || []);
   });
@@ -297,7 +328,13 @@ const initDatabase = async () => {
       )
     `);
 
-    // Semilla inicial: una sola cabina/especialista y catlogo real del proyecto.
+    // Tenant por defecto: se añade sin destruir datos existentes.
+    for (const table of TENANT_TABLES) {
+      await ensureColumn(table, 'tenant_id', "TEXT DEFAULT 'default'");
+      await dbRun(`UPDATE ${table} SET tenant_id = ? WHERE tenant_id IS NULL OR tenant_id = ''`, [TENANT_ID]);
+    }
+
+    // Semilla inicial: una sola cabina/especialista y catálogo real del proyecto.
     const serviceCount = await dbGet('SELECT COUNT(*) AS c FROM services');
     if (Number(serviceCount?.c || 0) === 0) {
       const seedServices = [
