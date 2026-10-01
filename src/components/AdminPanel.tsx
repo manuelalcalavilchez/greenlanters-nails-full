@@ -6,6 +6,7 @@ import StaffPasswordModal from './admin/StaffPasswordModal';
 import { apiService } from '../data/api';
 import { businessProfile } from '../config/businessProfile';
 import ContentBlockEditor from './admin/ContentBlockEditor';
+import AdminTabBar, { AdminTabId } from './admin/AdminTabBar';
 import { AdminPanelProps, DEFAULT_CONFIG, DEFAULT_WORKING_HOURS, SalonConfig } from './admin/adminTypes';
 
 
@@ -19,7 +20,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onAddToCatalog
 }) => {
   const [showSecurity, setShowSecurity] = useState(false);
-  const [activeTab, setActiveTab] = useState<'config' | 'contenidos' | 'galeria' | 'servicios' | 'especialistas' | 'agenda' | 'designs' | 'requests'>('config');
+  const [activeTab, setActiveTab] = useState<AdminTabId>('config');
   const [selectedTech, setSelectedTech] = useState<string>('all');
   const [selectedDesignModal, setSelectedDesignModal] = useState<CustomDesign | null>(null);
 
@@ -287,41 +288,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="sticky top-0 z-30 -mx-4 lg:mx-0 mb-6 bg-[#F7F8EF]/95 backdrop-blur-md border-b border-[#8CFF00]/20 px-2 py-2">
-          <div className="flex gap-2 overflow-x-auto pb-1 snap-x snap-mandatory">
-
-          {[
-            { id: 'config', label: 'Configuración', icon: Settings },
-            { id: 'contenidos', label: 'Contenidos', icon: FileText },
-            { id: 'galeria', label: 'Galería', icon: Image },
-            { id: 'servicios', label: 'Servicios', icon: Sparkles },
-            { id: 'especialistas', label: 'Especialistas', icon: Users },
-            { id: 'requests', label: 'Solicitudes', icon: BookmarkPlus },
-            { id: 'agenda', label: 'Citas', icon: Calendar },
-            { id: 'designs', label: 'Diseños', icon: Palette }
-          ].map(tab => {
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`min-h-11 px-4 py-2.5 text-xs font-semibold rounded-xl transition-all flex items-center gap-2 whitespace-nowrap relative snap-start ${
-                  activeTab === tab.id ? 'bg-[#082D05] text-[#F7F8EF] shadow-sm' : 'text-[#082D05]/70 hover:text-[#082D05]'
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                <span>{tab.label}</span>
-                {tab.id === 'requests' && pendingRequestsCount > 0 && (
-                  <span className="ml-1 px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-bold leading-none">
-                    {pendingRequestsCount}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-          </div>
-        </div>
+        <AdminTabBar activeTab={activeTab} pendingRequestsCount={pendingRequestsCount} onChange={setActiveTab} />
 
         {/* CONFIGURACIÓN */}
         {activeTab === 'config' && (
