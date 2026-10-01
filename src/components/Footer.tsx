@@ -1,6 +1,7 @@
 import React from 'react';
 import { Heart, MapPin } from 'lucide-react';
 import { GreenlantersLogo } from './GreenlantersLogo';
+import { businessProfile } from '../config/businessProfile';
 
 export const Footer: React.FC = () => {
   return (
@@ -9,7 +10,7 @@ export const Footer: React.FC = () => {
         <div>
           <GreenlantersLogo size={58} className="mb-5" />
           <p className="text-sm text-[#F7F8EF]/80 leading-relaxed">
-            Manicura, uñas en gel y poligel, dibujos a mano y decoración personalizada en Almería.
+            {businessProfile.description}
           </p>
         </div>
 
@@ -28,15 +29,15 @@ export const Footer: React.FC = () => {
           <div className="space-y-3 text-sm text-[#F7F8EF]/80">
             <div className="flex items-center gap-2.5">
               <MapPin className="w-4 h-4 text-[#8CFF00] shrink-0" />
-              <span>Almería</span>
+              <span>{businessProfile.location}</span>
             </div>
             <a
-              href="https://www.instagram.com/greenlanters.nails/"
+              href={businessProfile.instagramUrl}
               target="_blank"
               rel="noreferrer"
               className="hover:text-[#B7FF00] transition-colors"
             >
-              @greenlanters.nails
+              {businessProfile.instagram}
             </a>
           </div>
         </div>

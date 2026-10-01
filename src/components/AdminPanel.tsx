@@ -105,7 +105,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     const newSpecialist = {
       id: `sp${Date.now()}`,
       name: 'Nueva especialista',
-      role: 'Nail Artist',
+      role: businessProfile.labels.professional,
       photo: '💅',
       description: ''
     };

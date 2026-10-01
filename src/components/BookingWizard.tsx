@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { businessProfile } from '../config/businessProfile';
 import { Calendar as CalendarIcon, Clock, User, CheckCircle2, ArrowRight, ArrowLeft, ShieldCheck, Download, Plus, Check } from 'lucide-react';
 import { SERVICES, ADDONS, SPECIALISTS } from '../data/mockData';
 import { Appointment } from '../types';
@@ -106,7 +107,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ onAddBooking, setA
       totalDuration: calcTotalDuration(),
       clientName,
       clientPhone,
-      clientEmail: clientEmail || 'sin-correo@greenlanters.es',
+      clientEmail: clientEmail || `sin-correo@${businessProfile.id}.local`,
       notes,
       status: 'Confirmada',
       createdAt: new Date().toISOString()
@@ -125,13 +126,13 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ onAddBooking, setA
 
     const icsContent = `BEGIN:VCALENDAR
 VERSION:2.0
-PRODID:-//Las Greenlanters Nails//Citas//ES
+PRODID:-//${businessProfile.name}//Citas//ES
 BEGIN:VEVENT
-SUMMARY:Cita Manicura - Las Greenlanters Nails
+SUMMARY:${businessProfile.labels.appointment} - ${businessProfile.name}
 DESCRIPTION:Servicios: ${serviceNames}. Especialista: ${specialistObj?.name || 'Cualquiera'}. Localizador: ${createdAppointment.locator}
 DTSTART:${createdAppointment.date.replace(/-/g, '')}T${createdAppointment.time.replace(':', '')}00Z
 DTEND:${createdAppointment.date.replace(/-/g, '')}T${(parseInt(createdAppointment.time.split(':')[0]) + 1).toString().padStart(2, '0')}${createdAppointment.time.split(':')[1]}00Z
-LOCATION:Paseo de la Elegancia 42, Madrid
+LOCATION:${businessProfile.location}
 STATUS:CONFIRMED
 END:VEVENT
 END:VCALENDAR`;
