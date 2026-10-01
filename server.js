@@ -21,7 +21,9 @@ app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
 // SQLite Database
-const dbPath = path.join(__dirname, 'data', 'greenlanters.db');
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
+fs.mkdirSync(DATA_DIR, { recursive: true });
+const dbPath = path.join(DATA_DIR, 'greenlanters.db');
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) console.error('Database error:', err);
   else console.log(`�S& SQLite conectado: ${dbPath}`);
