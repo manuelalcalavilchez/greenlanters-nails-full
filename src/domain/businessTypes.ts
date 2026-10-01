@@ -2,7 +2,7 @@ export interface BusinessService {
   id: string;
   name: string;
   category: string;
-  duration: number;
+  durationMinutes: number;
   price: number;
   description: string;
   active?: boolean;

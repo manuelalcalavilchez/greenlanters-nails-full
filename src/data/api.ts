@@ -49,7 +49,8 @@ export const apiService = {
   async deleteAppointment(id: string) {
     try {
       const res = await fetch(`${API_BASE}/appointments/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: staffAuthHeaders()
       });
       return res.json();
     } catch (err) {
@@ -100,7 +101,8 @@ export const apiService = {
   async deleteDesign(id: string) {
     try {
       const res = await fetch(`${API_BASE}/designs/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: staffAuthHeaders()
       });
       return res.json();
     } catch (err) {
@@ -228,7 +230,8 @@ export const apiService = {
   async deleteService(id: string) {
     try {
       const res = await fetch(`${API_BASE}/services/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: staffAuthHeaders()
       });
       return res.json();
     } catch (err) {
@@ -279,7 +282,8 @@ export const apiService = {
   async deleteSpecialist(id: string) {
     try {
       const res = await fetch(`${API_BASE}/specialists/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: staffAuthHeaders()
       });
       return res.json();
     } catch (err) {

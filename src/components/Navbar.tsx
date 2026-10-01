@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Calendar, Scissors, UserCheck, BookmarkCheck, Menu, X, Camera, Home } from 'lucide-react';
 import { GreenlantersLogo } from './GreenlantersLogo';
+import { businessProfile } from '../config/businessProfile';
 
 interface NavbarProps {
   activeTab: string;
@@ -12,13 +13,12 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, booking
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navItems = [
-    { id: 'home', label: 'Inicio', icon: Home },
-
-    { id: 'livear', label: 'Pruébate nuestros diseños (en pruebas)', icon: Camera },
-    { id: 'atelier', label: 'Atelier Nail Art', icon: Scissors },
-    { id: 'mybookings', label: 'Mis Citas', badge: bookingCount > 0 ? bookingCount : undefined, icon: BookmarkCheck },
-    { id: 'admin', label: 'Cabina Staff', icon: UserCheck }
-  ];
+    { id: 'home', label: 'Inicio', icon: Home, enabled: true },
+    { id: 'livear', label: 'Pruébate nuestros diseños (en pruebas)', icon: Camera, enabled: businessProfile.features.ar },
+    { id: 'atelier', label: 'Atelier Nail Art', icon: Scissors, enabled: businessProfile.features.customStudio },
+    { id: 'mybookings', label: 'Mis Citas', badge: bookingCount > 0 ? bookingCount : undefined, icon: BookmarkCheck, enabled: true },
+    { id: 'admin', label: 'Cabina Staff', icon: UserCheck, enabled: true }
+  ].filter((item) => item.enabled);
 
   const handleNavClick = (tabId: string) => {
     if (tabId === 'livear') {

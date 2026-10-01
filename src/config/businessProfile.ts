@@ -17,6 +17,11 @@ export interface BusinessProfile {
     staff: string;
     gallery: string;
   };
+  features: {
+    ar: boolean;
+    customStudio: boolean;
+    giftCards: boolean;
+  };
 }
 
 export const businessProfile: BusinessProfile = {
@@ -30,5 +35,6 @@ export const businessProfile: BusinessProfile = {
   instagramUrl: 'https://www.instagram.com/greenlanters.nails/',
   logo: '/logo.png',
   colors: { primary: '#082D05', accent: '#8CFF00', background: '#F7F8EF', secondary: '#176B00' },
-  labels: { business: 'Salón', professional: 'Especialista', service: 'Servicio', appointment: 'Cita', staff: 'Cabina Staff', gallery: 'Galería' }
+  labels: { business: 'Salón', professional: 'Especialista', service: 'Servicio', appointment: 'Cita', staff: 'Cabina Staff', gallery: 'Galería' },
+  features: { ar: true, customStudio: true, giftCards: true }
 };

@@ -2,6 +2,7 @@ import React from 'react';
 import { Heart, MapPin } from 'lucide-react';
 import { GreenlantersLogo } from './GreenlantersLogo';
 import { businessProfile } from '../config/businessProfile';
+import { businessServices } from '../config/businessCatalog';
 
 export const Footer: React.FC = () => {
   return (
@@ -17,10 +18,9 @@ export const Footer: React.FC = () => {
         <div>
           <h4 className="font-display text-lg font-semibold text-[#8CFF00] mb-4">Servicios</h4>
           <ul className="space-y-2 text-sm text-[#F7F8EF]/80">
-            <li>Uñas en gel</li>
-            <li>Uñas en poligel</li>
-            <li>Dibujos a mano</li>
-            <li>Decoración personalizada</li>
+            {businessServices.slice(0, 4).map((service) => (
+              <li key={service.id}>{service.name}</li>
+            ))}
           </ul>
         </div>
 
@@ -44,9 +44,9 @@ export const Footer: React.FC = () => {
       </div>
 
       <div className="max-w-7xl mx-auto pt-7 border-t border-[#F7F8EF]/10 flex flex-col sm:flex-row items-center justify-between text-xs text-[#F7F8EF]/60 gap-3">
-        <p>© 2026 Las Greenlanters Nails. Todos los derechos reservados.</p>
+        <p>© {new Date().getFullYear()} {businessProfile.name}. Todos los derechos reservados.</p>
         <p className="flex items-center gap-1">
-          Hecho con <Heart className="w-3.5 h-3.5 text-[#8CFF00] fill-[#8CFF00]" /> para amantes de la manicura.
+          Hecho con <Heart className="w-3.5 h-3.5 text-[#8CFF00] fill-[#8CFF00]" /> para quienes disfrutan de nuestros servicios.
         </p>
       </div>
     </footer>
