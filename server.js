@@ -28,6 +28,9 @@ const dbPath = path.join(DATA_DIR, 'greenlanters.db');
 const TENANT_ID = process.env.TENANT_ID || 'default';
 const TENANT_TABLES = new Set(['appointments', 'custom_designs', 'salon_config', 'services', 'specialists', 'booking_requests', 'gallery']);
 const AUTH_FILE = path.join(DATA_DIR, 'staff-auth.json');
+if (process.env.NODE_ENV === 'production' && !process.env.STAFF_TOKEN_SECRET) {
+  throw new Error('STAFF_TOKEN_SECRET es obligatorio en producción y debe ser persistente.');
+}
 const TOKEN_SECRET = process.env.STAFF_TOKEN_SECRET || crypto.randomBytes(32).toString('hex');
 
 function hashPassword(password, salt = crypto.randomBytes(16).toString('hex')) {
@@ -66,7 +69,10 @@ function verifyStaffToken(token) {
 }
 function requireStaff(req, res, next) {
   const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
-  if (!verifyStaffToken(token)) return res.status(401).json({ error: 'Sesión de staff no válida o caducada.' });
+  const payload = verifyStaffToken(token);
+  if (!payload || payload.tenantId !== TENANT_ID) {
+    return res.status(401).json({ error: 'Sesión de staff no válida o caducada.' });
+  }
   next();
 }
 
@@ -450,14 +456,14 @@ app.post('/api/staff/setup-password', (req, res) => {
   if (password.length < 8) return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres.' });
   if (password !== confirmPassword) return res.status(400).json({ error: 'Las contraseñas no coinciden.' });
   saveStaffPassword(password);
-  res.json({ ok: true, token: signStaffToken({ role: 'staff', exp: Date.now() + 8 * 60 * 60 * 1000 }) });
+  res.json({ ok: true, token: signStaffToken({ role: 'staff', tenantId: TENANT_ID, exp: Date.now() + 8 * 60 * 60 * 1000 }) });
 });
 
 app.post('/api/staff/login', (req, res) => {
   const auth = loadStaffAuth();
   if (!auth) return res.status(428).json({ error: 'SETUP_REQUIRED', message: 'Debes crear la contraseña inicial.' });
   if (!verifyPassword(String(req.body?.password || ''), auth)) return res.status(401).json({ error: 'Credenciales incorrectas.' });
-  res.json({ ok: true, token: signStaffToken({ role: 'staff', exp: Date.now() + 8 * 60 * 60 * 1000 }) });
+  res.json({ ok: true, token: signStaffToken({ role: 'staff', tenantId: TENANT_ID, exp: Date.now() + 8 * 60 * 60 * 1000 }) });
 });
 
 app.post('/api/staff/change-password', requireStaff, (req, res) => {
