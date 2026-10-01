@@ -353,6 +353,11 @@ const initDatabase = async () => {
       await dbRun(`UPDATE ${table} SET tenant_id = ? WHERE tenant_id IS NULL OR tenant_id = ''`, [TENANT_ID]);
     }
 
+    // Índices de tenant para consultas y aislamiento operativo.
+    for (const table of [...TENANT_TABLES, 'content_blocks']) {
+      await dbRun(`CREATE INDEX IF NOT EXISTS idx_${table}_tenant_id ON ${table}(tenant_id)`);
+    }
+
     // Semilla inicial: una sola cabina/especialista y catálogo real del proyecto.
     const serviceCount = await dbGet('SELECT COUNT(*) AS c FROM services');
     if (Number(serviceCount?.c || 0) === 0) {
