@@ -75,12 +75,16 @@ Comprobar:
 
 ## 7. Seguridad pendiente
 
-Antes de considerar una instalación SaaS multi-tenant como producción endurecida:
+Ya implementado:
 
-- Rate limit/lockout para login.
+- Lockout temporal tras 5 intentos fallidos de login en 15 minutos.
+- `STAFF_TOKEN_SECRET` obligatorio en producción.
+- Token Staff vinculado al `TENANT_ID` y validado en backend.
+- Índices por `tenant_id` en las tablas operativas.
+
+Pendiente:
+
 - Rotación y revocación de tokens.
 - Validación estricta de payloads.
 - Límites de tamaño y tipo para imágenes.
-- Índices por `tenant_id` en tablas de alto volumen.
 - Resolución de tenant por hostname/subdominio.
-- `STAFF_TOKEN_SECRET` obligatorio en producción.

@@ -80,12 +80,13 @@ Las migraciones deben ser idempotentes y ejecutarse al arrancar o mediante un
 comando explícito de despliegue. Antes de migrar una base SQLite se conserva
 backup verificable con PRAGMA integrity_check.
 
-## Seguridad pendiente
-- Hacer obligatorio y persistente STAFF_TOKEN_SECRET en producción.
-- Rate limit/lockout en login y primer setup.
-- Rotación/revocación de tokens.
-- Validación de payloads y límites de tamaño para imágenes.
-- No confiar en tenant_id enviado por frontend.
+## Seguridad
+- STAFF_TOKEN_SECRET es obligatorio en producción y debe ser persistente.
+- El token Staff incorpora tenantId y el middleware rechaza tokens de otro tenant.
+- El login tiene lockout temporal tras 5 intentos fallidos en una ventana de 15 minutos.
+- No se acepta tenant_id desde el frontend.
+- Pendiente: rotación/revocación de tokens.
+- Pendiente: validación de payloads y límites de tamaño para imágenes.
 
 ## Próximas tandas
 - Modularizar AdminPanel en componentes por dominio.
