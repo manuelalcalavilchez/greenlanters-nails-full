@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { lazy, Suspense, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Navbar } from './components/Navbar';
 import { BottomNav } from './components/BottomNav';
 import { Footer } from './components/Footer';
 import { HomeViewV2 as HomeView } from './components/HomeViewV2';
-import { LiveARCameraCanvas } from './components/LiveARCameraCanvas';
-import { NailStudioEditor } from './components/NailStudioEditor';
+const LiveARCameraCanvas = lazy(() => import('./components/LiveARCameraCanvas').then(m => ({ default: m.LiveARCameraCanvas })));
+const NailStudioEditor = lazy(() => import('./components/NailStudioEditor').then(m => ({ default: m.NailStudioEditor })));
 import { BookingRequest } from './components/BookingRequest';
-import { AdminPanel } from './components/AdminPanel';
+const AdminPanel = lazy(() => import('./components/AdminPanel').then(m => ({ default: m.AdminPanel })));
 import { MyBookingsView } from './components/MyBookingsView';
 import { Appointment, CustomDesign, GiftCard, NailCatalogStyle } from './types';
 import { NAIL_STYLES_CATALOG } from './data/mockData';
@@ -111,6 +111,7 @@ export default function App() {
 
       {/* Main View Switcher */}
       <main className="flex-1">
+        <Suspense fallback={<div className="min-h-[50vh] flex items-center justify-center text-sm text-[#176B00]">Cargando…</div>}>
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -163,6 +164,7 @@ export default function App() {
         )}
           </motion.div>
         </AnimatePresence>
+        </Suspense>
       </main>
 
       {/* Footer */}
