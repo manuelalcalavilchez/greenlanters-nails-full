@@ -1,0 +1,20 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+
+
+# Artefactos de depuración (no deben publicarse)
+cdp.json
+checkbrowser.cjs
+checkws.cjs
+curl*.txt
+dom.txt
+html*.txt
+browser-errors*.txt
+ERROR
+*.crdownload
