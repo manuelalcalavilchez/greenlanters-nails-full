@@ -1,0 +1,69 @@
+import React from 'react';
+import { Appointment, CustomDesign, NailCatalogStyle } from '../../types';
+import { businessProfile } from '../../config/businessProfile';
+
+export interface SalonConfig {
+  name: string;
+  description: string;
+  phone: string;
+  email: string;
+  address: string;
+  hours: string;
+  whatsapp: string;
+  logo: string;
+  coverPhoto: string;
+  calendarPublic: boolean;
+  workingHours: Array<{ day: string; open: string; close: string; enabled: boolean }>;
+  blockedSlots: string[];
+  vacations: string[];
+  nailShapes: string[];
+  nailLengths: string[];
+  nailStyles: string[];
+  products: string[];
+  colors: { primary: string; accent: string; background: string };
+}
+
+export interface AdminPanelProps {
+  appointments: Appointment[];
+  setAppointments: React.Dispatch<React.SetStateAction<Appointment[]>>;
+  customDesigns: CustomDesign[];
+  setCustomDesigns: React.Dispatch<React.SetStateAction<CustomDesign[]>>;
+  catalogStyles?: NailCatalogStyle[];
+  setCatalogStyles?: React.Dispatch<React.SetStateAction<NailCatalogStyle[]>>;
+  onAddToCatalog?: (design: CustomDesign) => void;
+}
+
+export const DEFAULT_WORKING_HOURS = [
+  { day: 'Lunes', open: '10:00', close: '20:00', enabled: true },
+  { day: 'Martes', open: '10:00', close: '20:00', enabled: true },
+  { day: 'Miércoles', open: '10:00', close: '20:00', enabled: true },
+  { day: 'Jueves', open: '10:00', close: '20:00', enabled: true },
+  { day: 'Viernes', open: '10:00', close: '20:00', enabled: true },
+  { day: 'Sábado', open: '10:00', close: '14:00', enabled: true },
+  { day: 'Domingo', open: '10:00', close: '14:00', enabled: false }
+];
+
+export const DEFAULT_CONFIG: SalonConfig = {
+  name: businessProfile.name,
+  description: businessProfile.description,
+  phone: '',
+  email: '',
+  address: businessProfile.location,
+  hours: '',
+  whatsapp: '',
+  logo: '/assets/logo.jpg',
+  coverPhoto: '',
+  calendarPublic: true,
+  workingHours: [],
+  blockedSlots: [],
+  vacations: [],
+  nailShapes: [],
+  nailLengths: [],
+  nailStyles: [],
+  products: [],
+  colors: {
+    primary: businessProfile.colors.primary,
+    accent: businessProfile.colors.accent,
+    background: businessProfile.colors.background
+  }
+};
