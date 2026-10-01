@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Users, Palette, CheckCircle2, Clock, XCircle, Phone, Sparkles, Filter, Plus, Eye, BookmarkPlus, Lock, LogOut, Settings, Image, FileText, Trash2, Edit2, Save, X } from 'lucide-react';
 import { Appointment, CustomDesign, NailCatalogStyle } from '../types';
+import StaffAuthGate from './admin/StaffAuthGate';
+import StaffPasswordModal from './admin/StaffPasswordModal';
 import { apiService } from '../data/api';
 
-// This is only a client-side local gate, not real authentication. Use server-side auth before public deployment of Staff.
-const STAFF_PIN = import.meta.env.VITE_STAFF_PIN || '';
 
 interface SalonConfig {
   name: string;
@@ -85,9 +85,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   setCatalogStyles,
   onAddToCatalog
 }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => sessionStorage.getItem('greenlanters_staff_auth') === 'true');
-  const [pinInput, setPinInput] = useState<string>('');
-  const [pinError, setPinError] = useState<boolean>(false);
+  const [showSecurity, setShowSecurity] = useState(false);
   const [activeTab, setActiveTab] = useState<'config' | 'contenidos' | 'galeria' | 'servicios' | 'especialistas' | 'agenda' | 'designs' | 'requests'>('config');
   const [selectedTech, setSelectedTech] = useState<string>('all');
   const [selectedDesignModal, setSelectedDesignModal] = useState<CustomDesign | null>(null);
@@ -159,7 +157,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   };
 
   useEffect(() => {
-    reloadStaffData();
+    const load = () => reloadStaffData();
+    window.addEventListener('greenlanters-staff-authenticated', load);
+    if (sessionStorage.getItem('greenlanters_staff_token')) load();
+    return () => window.removeEventListener('greenlanters-staff-authenticated', load);
   }, []);
 
   // Edit states
@@ -167,21 +168,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [editingSpecialist, setEditingSpecialist] = useState<any | null>(null);
   const [editingConfig, setEditingConfig] = useState<SalonConfig>(DEFAULT_CONFIG);
 
-  const handlePinSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (pinInput === STAFF_PIN) {
-      sessionStorage.setItem('greenlanters_staff_auth', 'true');
-      setIsAuthenticated(true);
-      setPinError(false);
-    } else {
-      setPinError(true);
-      setPinInput('');
-    }
-  };
-
   const handleLogout = () => {
-    sessionStorage.removeItem('greenlanters_staff_auth');
-    setIsAuthenticated(false);
+    sessionStorage.removeItem('greenlanters_staff_token');
+    window.location.reload();
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -324,42 +313,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
   const completedCount = appointments.filter(a => a.status === 'Completada').length;
 
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-[#082D05] flex items-center justify-center px-4 py-16">
-        <form onSubmit={handlePinSubmit} className="bg-[#F7F8EF] rounded-3xl p-8 sm:p-10 max-w-sm w-full text-center space-y-6 shadow-2xl border border-[#8CFF00]/40">
-          <div className="w-16 h-16 rounded-2xl bg-[#082D05] text-[#8CFF00] flex items-center justify-center mx-auto">
-            <Lock className="w-7 h-7" />
-          </div>
-          <div>
-            <span className="text-xs font-bold uppercase tracking-widest text-[#8CFF00]">Acceso Restringido</span>
-            <h1 className="font-display text-2xl font-bold text-[#082D05] mt-1">Panel Administrativo</h1>
-            <p className="text-xs text-[#082D05]/60 mt-2">Introduce el PIN para gestionar el salón.</p>
-          </div>
-          <div>
-            <input
-              type="password"
-              inputMode="numeric"
-              autoFocus
-              value={pinInput}
-              onChange={(e) => { setPinInput(e.target.value); setPinError(false); }}
-              placeholder="? ? ? ?"
-              className={`w-full text-center tracking-[0.5em] text-lg px-4 py-3 rounded-xl border text-[#082D05] focus:outline-none focus:ring-2 focus:ring-[#8CFF00] ${pinError ? 'border-rose-400' : 'border-neutral-300'}`}
-            />
-            {pinError && <p className="text-xs text-rose-500 font-semibold mt-2">PIN incorrecto.</p>}
-          </div>
-          <button
-            type="submit"
-            className="w-full py-3.5 bg-[#082D05] hover:bg-[#176B00] text-[#F7F8EF] text-xs font-bold uppercase tracking-widest rounded-xl transition-all"
-          >
-            Acceder
-          </button>
-        </form>
-      </div>
-    );
-  }
-
   return (
+    <StaffAuthGate>
     <div className="min-h-screen bg-[#F7F8EF] pb-24 lg:pb-12 px-4 lg:px-12 py-8">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
@@ -369,12 +324,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               {salonConfig.name}
             </h1>
           </div>
-          <button
-            onClick={handleLogout}
-            className="p-2.5 rounded-xl bg-white border border-neutral-200 text-[#082D05]/60 hover:text-rose-600 hover:border-rose-200 transition-all"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowSecurity(true)}
+              className="p-2.5 rounded-xl bg-white border border-neutral-200 text-[#082D05]/60 hover:text-[#082D05] transition-all"
+              title="Seguridad"
+            >
+              <Lock className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleLogout}
+              className="p-2.5 rounded-xl bg-white border border-neutral-200 text-[#082D05]/60 hover:text-rose-600 hover:border-rose-200 transition-all"
+              title="Cerrar sesión"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Tabs */}
@@ -1202,6 +1167,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         )}
       </div>
     </div>
+      {showSecurity && <StaffPasswordModal onClose={() => setShowSecurity(false)} />}
+    </StaffAuthGate>
   );
 };
 

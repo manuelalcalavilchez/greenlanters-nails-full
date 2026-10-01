@@ -1,11 +1,16 @@
 // Servicio API para comunicarse con el servidor Express
 const API_BASE = '/api';
 
+const staffAuthHeaders = (): Record<string, string> => {
+  const token = sessionStorage.getItem('greenlanters_staff_token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
 export const apiService = {
   // CITAS
   async getAppointments() {
     try {
-      const res = await fetch(`${API_BASE}/appointments`);
+      const res = await fetch(`${API_BASE}/appointments`, { headers: staffAuthHeaders() });
       return res.json();
     } catch (err) {
       console.error('Error fetching appointments:', err);
@@ -17,7 +22,7 @@ export const apiService = {
     try {
       const res = await fetch(`${API_BASE}/appointments`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...staffAuthHeaders() },
         body: JSON.stringify(appointment)
       });
       return res.json();
@@ -31,7 +36,7 @@ export const apiService = {
     try {
       const res = await fetch(`${API_BASE}/appointments/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...staffAuthHeaders() },
         body: JSON.stringify(data)
       });
       return res.json();
@@ -56,7 +61,7 @@ export const apiService = {
   // DISEÑOS
   async getDesigns() {
     try {
-      const res = await fetch(`${API_BASE}/designs`);
+      const res = await fetch(`${API_BASE}/designs`, { headers: staffAuthHeaders() });
       return res.json();
     } catch (err) {
       console.error('Error fetching designs:', err);
@@ -68,7 +73,7 @@ export const apiService = {
     try {
       const res = await fetch(`${API_BASE}/designs`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...staffAuthHeaders() },
         body: JSON.stringify(design)
       });
       return res.json();
@@ -82,7 +87,7 @@ export const apiService = {
     try {
       const res = await fetch(`${API_BASE}/designs/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...staffAuthHeaders() },
         body: JSON.stringify(data)
       });
       return res.json();
@@ -119,7 +124,7 @@ export const apiService = {
     try {
       const res = await fetch(`${API_BASE}/config`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...staffAuthHeaders() },
         body: JSON.stringify(config)
       });
       return res.json();
@@ -144,7 +149,7 @@ export const apiService = {
     try {
       const res = await fetch(`${API_BASE}/services`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...staffAuthHeaders() },
         body: JSON.stringify(service)
       });
       return res.json();
@@ -158,7 +163,7 @@ export const apiService = {
     try {
       const res = await fetch(`${API_BASE}/services/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...staffAuthHeaders() },
         body: JSON.stringify(service)
       });
       return res.json();
@@ -195,7 +200,7 @@ export const apiService = {
     try {
       const res = await fetch(`${API_BASE}/specialists`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...staffAuthHeaders() },
         body: JSON.stringify(specialist)
       });
       return res.json();
@@ -209,7 +214,7 @@ export const apiService = {
     try {
       const res = await fetch(`${API_BASE}/specialists/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...staffAuthHeaders() },
         body: JSON.stringify(specialist)
       });
       return res.json();
@@ -246,7 +251,7 @@ export const apiService = {
     try {
       const res = await fetch(`${API_BASE}/gallery`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...staffAuthHeaders() },
         body: JSON.stringify(photo)
       });
       return res.json();
@@ -259,7 +264,8 @@ export const apiService = {
   async deletePhoto(id: string) {
     try {
       const res = await fetch(`${API_BASE}/gallery/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: staffAuthHeaders()
       });
       return res.json();
     } catch (err) {
@@ -285,7 +291,7 @@ export const apiService = {
 
   async getBookingRequests() {
     try {
-      const res = await fetch(`${API_BASE}/booking-requests`);
+      const res = await fetch(`${API_BASE}/booking-requests`, { headers: staffAuthHeaders() });
       return res.json();
     } catch (err) {
       console.error('Error fetching booking requests:', err);
@@ -297,7 +303,7 @@ export const apiService = {
     try {
       const res = await fetch(`${API_BASE}/booking-requests/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...staffAuthHeaders() },
         body: JSON.stringify({ status })
       });
       return res.json();
@@ -310,7 +316,8 @@ export const apiService = {
   async deleteBookingRequest(id: string) {
     try {
       const res = await fetch(`${API_BASE}/booking-requests/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: staffAuthHeaders()
       });
       return res.json();
     } catch (err) {

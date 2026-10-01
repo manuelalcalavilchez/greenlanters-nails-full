@@ -7,6 +7,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import bodyParser from 'body-parser';
 import nodemailer from 'nodemailer';
+import crypto from 'node:crypto';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -24,9 +25,52 @@ app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 fs.mkdirSync(DATA_DIR, { recursive: true });
 const dbPath = path.join(DATA_DIR, 'greenlanters.db');
+const AUTH_FILE = path.join(DATA_DIR, 'staff-auth.json');
+const TOKEN_SECRET = process.env.STAFF_TOKEN_SECRET || crypto.randomBytes(32).toString('hex');
+
+function hashPassword(password, salt = crypto.randomBytes(16).toString('hex')) {
+  return { salt, hash: crypto.scryptSync(password, salt, 64).toString('hex') };
+}
+function verifyPassword(password, record) {
+  const candidate = crypto.scryptSync(password, record.salt, 64);
+  const stored = Buffer.from(record.hash, 'hex');
+  return stored.length === candidate.length && crypto.timingSafeEqual(candidate, stored);
+}
+function isStaffInitialized() {
+  return fs.existsSync(AUTH_FILE);
+}
+function loadStaffAuth() {
+  if (!isStaffInitialized()) return null;
+  try { return JSON.parse(fs.readFileSync(AUTH_FILE, 'utf8')); } catch { return null; }
+}
+function saveStaffPassword(password) {
+  fs.writeFileSync(AUTH_FILE, JSON.stringify({ ...hashPassword(password), updatedAt: new Date().toISOString() }, null, 2), { mode: 0o600 });
+}
+function signStaffToken(payload) {
+  const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const signature = crypto.createHmac('sha256', TOKEN_SECRET).update(body).digest('base64url');
+  return body + '.' + signature;
+}
+function verifyStaffToken(token) {
+  if (!token) return null;
+  const [body, signature] = token.split('.');
+  if (!body || !signature) return null;
+  const expected = crypto.createHmac('sha256', TOKEN_SECRET).update(body).digest('base64url');
+  if (signature.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) return null;
+  try {
+    const payload = JSON.parse(Buffer.from(body, 'base64url').toString());
+    return payload.exp > Date.now() ? payload : null;
+  } catch { return null; }
+}
+function requireStaff(req, res, next) {
+  const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+  if (!verifyStaffToken(token)) return res.status(401).json({ error: 'Sesión de staff no válida o caducada.' });
+  next();
+}
+
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) console.error('Database error:', err);
-  else console.log(`�S& SQLite conectado: ${dbPath}`);
+  else console.log(`INFO: SQLite conectado: ${dbPath}`);
 });
 
 // ==================== EMAIL (nodemailer) ====================
@@ -43,9 +87,9 @@ if (process.env.SMTP_USER && process.env.SMTP_PASS) {
       pass: process.env.SMTP_PASS
     }
   });
-  console.log('�S& SMTP configurado:', process.env.SMTP_HOST || 'smtp.gmail.com');
+  console.log('INFO: SMTP configurado:', process.env.SMTP_HOST || 'smtp.gmail.com');
 } else {
-  console.warn('�a�?  SMTP no configurado en .env (SMTP_USER/SMTP_PASS). Los emails solo se mostrar�n en consola.');
+  console.warn('AVISO:  SMTP no configurado en .env (SMTP_USER/SMTP_PASS). Los emails solo se mostrarn en consola.');
 }
 
 // Sustituye {{variable}} en la plantilla HTML por su valor
@@ -58,13 +102,13 @@ const renderTemplate = (templateName, vars = {}) => {
   return html;
 };
 
-// Env�a un email; nunca lanza (se registra el error y se sigue)
+// Envía un email; nunca lanza (se registra el error y se sigue)
 const sendEmail = async ({ to, subject, templateName, vars }) => {
   if (!to) return { success: false, error: 'Sin destinatario' };
   try {
     const html = renderTemplate(templateName, vars);
     if (!transporter) {
-      console.log(`�x� [DEV - sin SMTP] Para: ${to} | Asunto: ${subject}`);
+      console.log(`INFO: [DEV - sin SMTP] Para: ${to} | Asunto: ${subject}`);
       return { success: true, dev: true };
     }
     await transporter.sendMail({
@@ -73,10 +117,10 @@ const sendEmail = async ({ to, subject, templateName, vars }) => {
       subject,
       html
     });
-    console.log(`�S& Email enviado a ${to}: ${subject}`);
+    console.log(`INFO: Email enviado a ${to}: ${subject}`);
     return { success: true };
   } catch (err) {
-    console.error(`�R Error enviando email a ${to}:`, err.message);
+    console.error(`R Error enviando email a ${to}:`, err.message);
     return { success: false, error: err.message };
   }
 };
@@ -135,7 +179,7 @@ const initDatabase = async () => {
       )
     `);
 
-    // Tabla de dise�os personalizados
+    // Tabla de diseños personalizados
     await dbRun(`
       CREATE TABLE IF NOT EXISTS custom_designs (
         id TEXT PRIMARY KEY,
@@ -152,7 +196,7 @@ const initDatabase = async () => {
       )
     `);
 
-    // Tabla de configuraci�n del sal�n
+    // Tabla de configuración del salón
     await dbRun(`
       CREATE TABLE IF NOT EXISTS salon_config (
         id TEXT PRIMARY KEY,
@@ -180,7 +224,7 @@ const initDatabase = async () => {
       )
     `);
 
-    // Migraci�n segura para instalaciones existentes
+    // Migracin segura para instalaciones existentes
     await ensureColumn('salon_config', 'whatsapp', 'TEXT');
     await ensureColumn('salon_config', 'calendarPublic', 'INTEGER DEFAULT 1');
     await ensureColumn('salon_config', 'workingHours', 'TEXT');
@@ -203,7 +247,7 @@ const initDatabase = async () => {
       )
     `);
 
-    // Campos editoriales del cat�logo p�blico (migraci�n segura)
+    // Campos editoriales del catlogo pblico (migracin segura)
     await ensureColumn('services', 'category', 'TEXT');
     await ensureColumn('services', 'shortDescription', 'TEXT');
     await ensureColumn('services', 'longDescription', 'TEXT');
@@ -241,7 +285,7 @@ const initDatabase = async () => {
       )
     `);
 
-    // Tabla de galer�a
+    // Tabla de galería
     await dbRun(`
       CREATE TABLE IF NOT EXISTS gallery (
         id TEXT PRIMARY KEY,
@@ -253,14 +297,14 @@ const initDatabase = async () => {
       )
     `);
 
-    // Semilla inicial: una sola cabina/especialista y cat�logo real del proyecto.
+    // Semilla inicial: una sola cabina/especialista y catlogo real del proyecto.
     const serviceCount = await dbGet('SELECT COUNT(*) AS c FROM services');
     if (Number(serviceCount?.c || 0) === 0) {
       const seedServices = [
-        ['unas-gel', 'U�as en gel', 'gel', 'Manicura y dise�os realizados con t�cnica de gel.', 1],
-        ['unas-poligel', 'U�as en poligel', 'poligel', 'Dise�os y trabajos realizados con t�cnica de poligel.', 2],
-        ['dibujos-a-mano', 'Dibujos a mano', 'decoracion', 'Dise�os personalizados y detalles realizados a mano.', 3],
-        ['decoracion-personalizada', 'Decoraci�n personalizada', 'diseno_personalizado', 'Decoraci�n y nail art adaptados al estilo de cada clienta.', 4]
+        ['unas-gel', 'Uñas en gel', 'gel', 'Manicura y diseños realizados con técnica de gel.', 1],
+        ['unas-poligel', 'Uñas en poligel', 'poligel', 'Diseños y trabajos realizados con técnica de poligel.', 2],
+        ['dibujos-a-mano', 'Dibujos a mano', 'decoracion', 'Diseños personalizados y detalles realizados a mano.', 3],
+        ['decoracion-personalizada', 'Decoración personalizada', 'diseno_personalizado', 'Decoración y nail art adaptados al estilo de cada clienta.', 4]
       ];
       for (const [id, name, category, description, sortOrder] of seedServices) {
         await dbRun(
@@ -316,6 +360,58 @@ const initDatabase = async () => {
   }
 };
 
+// ==================== AUTENTICACIÓN STAFF ====================
+
+app.get('/api/staff/status', (_req, res) => {
+  res.json({ initialized: isStaffInitialized() });
+});
+
+app.post('/api/staff/setup-password', (req, res) => {
+  if (isStaffInitialized()) return res.status(409).json({ error: 'La contraseña inicial ya fue configurada.' });
+  const password = String(req.body?.password || '');
+  const confirmPassword = String(req.body?.confirmPassword || '');
+  if (password.length < 8) return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres.' });
+  if (password !== confirmPassword) return res.status(400).json({ error: 'Las contraseñas no coinciden.' });
+  saveStaffPassword(password);
+  res.json({ ok: true, token: signStaffToken({ role: 'staff', exp: Date.now() + 8 * 60 * 60 * 1000 }) });
+});
+
+app.post('/api/staff/login', (req, res) => {
+  const auth = loadStaffAuth();
+  if (!auth) return res.status(428).json({ error: 'SETUP_REQUIRED', message: 'Debes crear la contraseña inicial.' });
+  if (!verifyPassword(String(req.body?.password || ''), auth)) return res.status(401).json({ error: 'Credenciales incorrectas.' });
+  res.json({ ok: true, token: signStaffToken({ role: 'staff', exp: Date.now() + 8 * 60 * 60 * 1000 }) });
+});
+
+app.post('/api/staff/change-password', requireStaff, (req, res) => {
+  const currentPassword = String(req.body?.currentPassword || '');
+  const newPassword = String(req.body?.newPassword || '');
+  const confirmPassword = String(req.body?.confirmPassword || '');
+  const auth = loadStaffAuth();
+  if (!auth || !verifyPassword(currentPassword, auth)) return res.status(400).json({ error: 'La contraseña actual no es correcta.' });
+  if (newPassword.length < 8) return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 8 caracteres.' });
+  if (newPassword !== confirmPassword) return res.status(400).json({ error: 'Las nuevas contraseñas no coinciden.' });
+  saveStaffPassword(newPassword);
+  res.json({ ok: true, message: 'Contraseña actualizada correctamente.' });
+});
+
+// Las operaciones administrativas requieren token. Se mantienen públicas:
+// reservas de clientes, feed de Instagram y descarga de imágenes de galería.
+app.use('/api', (req, res, next) => {
+  if (req.path.startsWith('/staff/')) return next();
+  if (req.path === '/booking-request' && req.method === 'POST') return next();
+  if (req.path === '/public/content-feed' && req.method === 'GET') return next();
+  if (/^\/gallery\/[^/]+\/image$/.test(req.path) && req.method === 'GET') return next();
+  if (req.path === '/health' && req.method === 'GET') return next();
+
+  const protectedRead = req.method === 'GET' &&
+    ['/appointments', '/designs', '/booking-requests'].includes(req.path);
+  const protectedWrite = ['POST', 'PUT', 'DELETE'].includes(req.method);
+
+  if (protectedRead || protectedWrite) return requireStaff(req, res, next);
+  next();
+});
+
 // ==================== RUTAS API ====================
 
 // CITAS
@@ -345,7 +441,7 @@ app.post('/api/appointments', async (req, res) => {
 
     sendEmail({
       to: clientEmail,
-      subject: `Tu cita est� confirmada � PIN ${locator} � Las Greenlanters Nails`,
+      subject: `Tu cita est confirmada - PIN ${locator}  Las Greenlanters Nails`,
       templateName: 'booking-confirmed.html',
       vars: { clientName, locator, date, time, totalPrice: totalPrice ?? 0 }
     });
@@ -370,7 +466,7 @@ app.put('/api/appointments/:id', async (req, res) => {
       if (appt?.clientEmail) {
         sendEmail({
           to: appt.clientEmail,
-          subject: `Tu cita ${appt.locator} ha sido cancelada � Las Greenlanters Nails`,
+          subject: `Tu cita ${appt.locator} ha sido cancelada - Las Greenlanters Nails`,
           templateName: 'booking-cancelled.html',
           vars: { clientName: appt.clientName, locator: appt.locator, date: appt.date, time: appt.time }
         });
@@ -392,7 +488,7 @@ app.delete('/api/appointments/:id', async (req, res) => {
   }
 });
 
-// DISE�OS
+// DISEOS
 app.get('/api/designs', async (req, res) => {
   try {
     const designs = await dbAll('SELECT * FROM custom_designs ORDER BY createdAt DESC');
@@ -443,7 +539,7 @@ app.delete('/api/designs/:id', async (req, res) => {
   }
 });
 
-// CONFIGURACI�N
+// CONFIGURACIN
 app.get('/api/config', async (req, res) => {
   try {
     const config = await dbGet('SELECT * FROM salon_config WHERE id = ?', ['main']);
@@ -500,7 +596,7 @@ app.put('/api/config', async (req, res) => {
 
     res.json({ success: true });
   } catch (err) {
-    console.error('Error guardando configuraci�n:', err);
+    console.error('Error guardando configuración:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -602,13 +698,13 @@ app.delete('/api/specialists/:id', async (req, res) => {
   }
 });
 
-// ==================== FEED P�aBLICO (para instagram-autopilot / servicios externos) ====================
+// ==================== FEED PÚBLICO (para instagram-autopilot / servicios externos) ====================
 // Ver I:\instagram-autopilot\INTEGRATION.md para el contrato de este endpoint.
 app.get('/api/public/content-feed', async (req, res) => {
   try {
     const providedKey = req.header('x-api-key');
     if (process.env.CONTENT_FEED_API_KEY && providedKey !== process.env.CONTENT_FEED_API_KEY) {
-      return res.status(401).json({ error: 'API key inv�lida' });
+      return res.status(401).json({ error: 'API key inválida' });
     }
     const photos = await dbAll('SELECT * FROM gallery ORDER BY displayOrder ASC, uploadedAt DESC');
     const baseUrl = `${req.protocol}://${req.get('host')}`;
@@ -617,7 +713,7 @@ app.get('/api/public/content-feed', async (req, res) => {
       type: 'gallery_photo',
       imageUrl: `${baseUrl}/api/gallery/${p.id}/image`,
       title: p.title || '',
-      context: p.caption || 'Foto de la galer�a del sal�n',
+      context: p.caption || 'Foto de la galería del salón',
       createdAt: p.uploadedAt,
       consent: true
     }));
@@ -627,8 +723,8 @@ app.get('/api/public/content-feed', async (req, res) => {
   }
 });
 
-// Sirve la foto de galer�a como imagen real (necesario para que Instagram/el
-// servicio externo puedan descargarla por URL p�blica, no vale el base64)
+// Sirve la foto de galería como imagen real (necesario para que Instagram/el
+// servicio externo puedan descargarla por URL pblica, no vale el base64)
 app.get('/api/gallery/:id/image', async (req, res) => {
   try {
     const photo = await dbGet('SELECT photoBase64 FROM gallery WHERE id = ?', [req.params.id]);
@@ -644,7 +740,7 @@ app.get('/api/gallery/:id/image', async (req, res) => {
   }
 });
 
-// GALER�A
+// GALERA
 app.get('/api/gallery', async (req, res) => {
   try {
     const photos = await dbAll('SELECT * FROM gallery ORDER BY displayOrder ASC');
@@ -695,7 +791,7 @@ app.post('/api/booking-request', async (req, res) => {
 
     sendEmail({
       to: clientEmail,
-      subject: 'Hemos recibido tu solicitud de cita � Las Greenlanters Nails',
+      subject: 'Hemos recibido tu solicitud de cita - Las Greenlanters Nails',
       templateName: 'booking-confirmation.html',
       vars: {
         clientName,
@@ -749,7 +845,7 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// Frontend de producci�n: mismo origen que la API, compatible con Cloudflare/EasyPanel.
+// Frontend de producción: mismo origen que la API, compatible con Cloudflare/EasyPanel.
 const distPath = path.join(__dirname, 'dist');
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath));
@@ -764,9 +860,9 @@ if (fs.existsSync(distPath)) {
 // Inicializar y escuchar
 initDatabase().then(() => {
   app.listen(PORT, HOST, () => {
-    console.log(`�xa� Servidor Express en puerto ${PORT}`);
-    console.log(`�x� API Base: http://localhost:${PORT}/api`);
-    console.log(`�x� Base de datos: ${dbPath}`);
+    console.log(`INFO:a Servidor Express en puerto ${PORT}`);
+    console.log(`INFO: API Base: http://localhost:${PORT}/api`);
+    console.log(`INFO: Base de datos: ${dbPath}`);
   });
 });
 
