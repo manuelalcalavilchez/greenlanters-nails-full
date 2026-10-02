@@ -9,7 +9,7 @@ type SalonConfig = { phone?: string; whatsapp?: string; address?: string; hours?
 type Message = { role: 'user' | 'assistant'; text: string };
 type Props = { setActiveTab?: (tab: string) => void };
 
-const HISTORY_KEY = 'greenlanters-chat-history-v2';
+const HISTORY_KEY = 'greenlanters-chat-history-v3';
 const MAX_HISTORY = 14;
 
 const starterMessage = (): Message => ({
@@ -64,26 +64,85 @@ export function GreenlantersChatbot({ setActiveTab }: Props) {
     const text = encodeURIComponent('Hola, vengo de la web de Las Greenlanters Nails 😊');
     window.open('https://wa.me/' + whatsapp + '?text=' + text, '_blank', 'noopener,noreferrer');
   };
+  const normalize = (value: string) => value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const findService = (q: string, terms: string[]) => services.find(s => {
+    const name = normalize(s.name || '');
+    return terms.some(term => name.includes(term) || q.includes(term));
+  });
+
+  const formatServices = () => services.slice(0, 8).map(s => {
+    const name = s.name || 'Servicio';
+    const price = s.price !== undefined && s.price !== null && s.price !== '' ? ` — ${s.price} €` : '';
+    return '• ' + name + price;
+  }).join('\n');
+
   const answerLocal = (question: string) => {
-    const q = question.toLowerCase();
+    const q = normalize(question);
+    const hasPriceData = services.some(s => s.price !== undefined && s.price !== null && s.price !== '');
+    const gelService = findService(q, ['gel']);
+    const polygelService = findService(q, ['polygel', 'poli gel']);
+
     if (q.includes('hola') || q.includes('buenas') || q.includes('hey')) {
       return '¡Holaaa! 💚 Cuéntame, ¿qué te apetece hacerte? Si tienes una idea en mente, aunque sea un poco loca, también me vale 😄';
     }
-    if (q.includes('servicio') || q.includes('precio') || q.includes('cuesta') || q.includes('gel') || q.includes('polygel')) {
-      if (services.length) {
-        return 'Claro 😊 Ahora mismo tengo estos servicios:\n\n' +
-          services.slice(0, 8).map(s => '• ' + (s.name || 'Servicio') +
-          (s.price !== undefined && s.price !== null ? ' — ' + s.price + ' €' : '')).join('\n') +
-          '\n\nSi me dices qué quieres hacerte, te ayudo a orientarte.';
-      }
-      return 'Claro 😊 Dime qué tipo de uñas tienes en mente y te cuento lo que puedo encontrar en la web. Si buscas un precio concreto, prefiero comprobarlo antes que inventármelo.';
+
+    if ((q.includes('diferencia') || q.includes('compar') || q.includes('mejor')) && (q.includes('gel') || q.includes('polygel') || q.includes('poli gel'))) {
+      return 'La diferencia principal es que gel y poligel son técnicas/productos distintos para trabajar y dar estructura a la uña. 💚 En la web tengo ambos como servicios, pero no tengo cargada una explicación técnica detallada de cada uno como para decirte cuál te conviene más sin inventar. Si me cuentas qué buscas —por ejemplo, longitud, resistencia o un acabado concreto— te puedo orientar con lo que sí tenemos disponible.';
     }
+
+    if ((q.includes('que es') || q.includes('qué es') || q.includes('como es') || q.includes('en que consiste') || q.includes('para que sirve')) && (q.includes('polygel') || q.includes('poli gel'))) {
+      const description = polygelService?.description || polygelService?.shortDescription;
+      return description
+        ? `El poligel es un servicio que tenemos en el salón. 😊 En la ficha aparece así: “${description}”. Si quieres, también te puedo contar la diferencia con el gel.`
+        : 'El poligel es una técnica/producto para trabajar y dar estructura a la uña. 😊 No tengo una descripción más detallada cargada en la web y prefiero no inventártela.';
+    }
+
+    if ((q.includes('que es') || q.includes('qué es') || q.includes('como es') || q.includes('en que consiste') || q.includes('para que sirve')) && q.includes('gel')) {
+      const description = gelService?.description || gelService?.shortDescription;
+      return description
+        ? `Las uñas en gel son un servicio que tenemos en el salón. 😊 En la ficha aparece así: “${description}”. Si quieres, también te puedo contar la diferencia con el poligel.`
+        : 'Las uñas en gel son una técnica/producto para trabajar y dar estructura a la uña. 😊 No tengo una descripción más detallada cargada en la web y prefiero no inventártela.';
+    }
+
+    if (q.includes('mas barato') || q.includes('más barato') || q.includes('barato') || q.includes('cuanto cuesta') || q.includes('cuánto cuesta') || q.includes('que precio') || q.includes('qué precio') || q.includes('precio')) {
+      const specific = q.includes('polygel') || q.includes('poli gel') ? polygelService : q.includes('gel') ? gelService : undefined;
+      if (specific?.price !== undefined && specific?.price !== null && specific.price !== '') {
+        return `El servicio de ${specific.name || 'ese tipo de uñas'} aparece ahora mismo a ${specific.price} €. 😊`;
+      }
+      if ((q.includes('mas barato') || q.includes('barato')) && hasPriceData) {
+        const priced = services.filter(s => s.price !== undefined && s.price !== null && s.price !== '').map(s => ({ ...s, numericPrice: Number(String(s.price).replace(',', '.')) })).filter(s => Number.isFinite(s.numericPrice));
+        if (priced.length) {
+          const min = Math.min(...priced.map(s => s.numericPrice));
+          const cheapest = priced.filter(s => s.numericPrice === min).map(s => s.name || 'Servicio').join(' y ');
+          return `De los servicios que tienen precio cargado, el más económico es ${cheapest}, a ${min} €. 💚`;
+        }
+      }
+      return 'Ahora mismo no tengo cargado el precio de ese servicio en la web, así que prefiero no inventártelo 😅. Si quieres saber el precio exacto, puedes consultarlo con el salón por WhatsApp.';
+    }
+
+    if (q.includes('diseño') && (q.includes('foto') || q.includes('fotos') || q.includes('imagen') || q.includes('referencia') || q.includes('inspiracion') || q.includes('inspiración'))) {
+      return 'Sí 💚 Una foto de referencia puede servir para enseñar el diseño que buscas. Para saber si se puede reproducir tal cual y cuánto costaría, lo ideal es que el salón vea la imagen, porque puede depender de la técnica y de lo elaborado que sea.';
+    }
+
+    if (q.includes('servicio') || q.includes('que teneis') || q.includes('qué tenéis') || q.includes('que ofreceis') || q.includes('qué ofrecéis')) {
+      if (services.length) {
+        return 'Claro 😊 Ahora mismo tengo estos servicios:\n\n' + formatServices() + '\n\nSi me dices qué quieres hacerte, te ayudo a orientarte.';
+      }
+      return 'Ahora mismo no tengo el catálogo cargado. Si me dices qué tienes en mente, puedo orientarte o ponerte en contacto con el salón.';
+    }
+
     if (q.includes('hora') || q.includes('abierto') || q.includes('horario')) {
       return config.hours
         ? 'Sí 😊 El horario que tengo ahora mismo es:\n\n' + config.hours
         : 'Déjame no inventarte un horario 😅. Si necesitas saber si están disponibles a una hora concreta, lo mejor es hablar con el salón por WhatsApp.';
     }
-    if (q.includes('dónde') || q.includes('donde') || q.includes('dirección') || q.includes('ubicación')) {
+    if (q.includes('donde') || q.includes('dirección') || q.includes('ubicación')) {
       return config.address
         ? 'Estamos por aquí 📍\n\n' + config.address
         : 'El salón está en ' + businessProfile.location + '. Si quieres la dirección exacta, te la puedo facilitar por WhatsApp.';
