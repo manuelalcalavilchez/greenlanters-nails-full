@@ -9,15 +9,32 @@ type SalonConfig = { phone?: string; whatsapp?: string; address?: string; hours?
 type Message = { role: 'user' | 'assistant'; text: string };
 type Props = { setActiveTab?: (tab: string) => void };
 
+const HISTORY_KEY = 'greenlanters-chat-history-v2';
+const MAX_HISTORY = 14;
+
+const starterMessage = (): Message => ({
+  role: 'assistant',
+  text: chatbotConfig.welcome
+});
+
 export function GreenlantersChatbot({ setActiveTab }: Props) {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', text: chatbotConfig.welcome }
-  ]);
+  const [messages, setMessages] = useState<Message[]>(() => {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(HISTORY_KEY) || 'null');
+      return Array.isArray(saved) && saved.length ? saved : [starterMessage()];
+    } catch {
+      return [starterMessage()];
+    }
+  });
   const [services, setServices] = useState<Service[]>([]);
   const [config, setConfig] = useState<SalonConfig>({});
+
+  useEffect(() => {
+    sessionStorage.setItem(HISTORY_KEY, JSON.stringify(messages.slice(-MAX_HISTORY)));
+  }, [messages]);
 
   useEffect(() => {
     Promise.all([
@@ -41,32 +58,44 @@ export function GreenlantersChatbot({ setActiveTab }: Props) {
 
   const sendWhatsApp = () => {
     if (!whatsapp) {
-      addAssistant('Puedes contactar con el salón desde el botón de contacto de la web.');
+      addAssistant('Si quieres hablar directamente con el salón, puedes usar el botón de contacto de la web 💚');
       return;
     }
-    const text = encodeURIComponent('Hola, vengo de la web de Las Greenlanters Nails y me gustaría pedir información.');
+    const text = encodeURIComponent('Hola, vengo de la web de Las Greenlanters Nails 😊');
     window.open('https://wa.me/' + whatsapp + '?text=' + text, '_blank', 'noopener,noreferrer');
   };
-
   const answerLocal = (question: string) => {
     const q = question.toLowerCase();
+    if (q.includes('hola') || q.includes('buenas') || q.includes('hey')) {
+      return '¡Holaaa! 💚 Cuéntame, ¿qué te apetece hacerte? Si tienes una idea en mente, aunque sea un poco loca, también me vale 😄';
+    }
     if (q.includes('servicio') || q.includes('precio') || q.includes('cuesta') || q.includes('gel') || q.includes('polygel')) {
       if (services.length) {
-        return services.slice(0, 8).map(s => '• ' + (s.name || 'Servicio') + (s.price !== undefined && s.price !== null ? ' — ' + s.price + ' €' : '')).join('\n');
+        return 'Claro 😊 Ahora mismo tengo estos servicios:\n\n' +
+          services.slice(0, 8).map(s => '• ' + (s.name || 'Servicio') +
+          (s.price !== undefined && s.price !== null ? ' — ' + s.price + ' €' : '')).join('\n') +
+          '\n\nSi me dices qué quieres hacerte, te ayudo a orientarte.';
       }
-      return 'Puedo enseñarte los servicios disponibles en la sección de servicios de la web. Si quieres un precio concreto, escríbeme el nombre del servicio.';
+      return 'Claro 😊 Dime qué tipo de uñas tienes en mente y te cuento lo que puedo encontrar en la web. Si buscas un precio concreto, prefiero comprobarlo antes que inventármelo.';
     }
     if (q.includes('hora') || q.includes('abierto') || q.includes('horario')) {
-      return config.hours || 'Los horarios aparecen en la información del negocio. Si necesitas una hora concreta, podemos continuar por WhatsApp.';
+      return config.hours
+        ? 'Sí 😊 El horario que tengo ahora mismo es:\n\n' + config.hours
+        : 'Déjame no inventarte un horario 😅. Si necesitas saber si están disponibles a una hora concreta, lo mejor es hablar con el salón por WhatsApp.';
     }
     if (q.includes('dónde') || q.includes('donde') || q.includes('dirección') || q.includes('ubicación')) {
-      return config.address || 'Estamos en ' + businessProfile.location + '. Puedes pedir la ubicación exacta por WhatsApp.';
+      return config.address
+        ? 'Estamos por aquí 📍\n\n' + config.address
+        : 'El salón está en ' + businessProfile.location + '. Si quieres la dirección exacta, te la puedo facilitar por WhatsApp.';
     }
     if (q.includes('reserva') || q.includes('cita') || q.includes('apuntar')) {
-      return 'Claro 💚. Puedes solicitar una cita desde el botón de reserva de la web o continuar por WhatsApp.';
+      return '¡Claro! 💚 Puedes reservar desde la web. Si me cuentas qué servicio quieres y, si ya lo sabes, qué día te viene bien, te voy guiando.';
     }
     if (q.includes('regalo') || q.includes('tarjeta')) {
-      return 'Sí, la web dispone de tarjetas regalo. Puedes consultar la sección de tarjetas regalo o preguntarme qué necesitas.';
+      return 'Sí 🎁 Tenemos la opción de tarjetas regalo. Si quieres, te explico dónde encontrarla en la web.';
+    }
+    if (q.includes('gracias') || q.includes('perfecto') || q.includes('genial')) {
+      return '¡De nada! 💚 Para eso estoy. Si se te ocurre otra cosa, aquí me tienes.';
     }
     return '';
   };
@@ -79,7 +108,7 @@ export function GreenlantersChatbot({ setActiveTab }: Props) {
       return;
     }
     const textById: Record<string, string> = {
-      services: '¿Qué servicios y precios tenéis?',
+      services: 'Quiero saber qué servicios tenéis y cuánto cuestan.',
       hours: '¿Cuál es vuestro horario?',
       location: '¿Dónde está el salón?',
       gift: '¿Tenéis tarjetas regalo?'
@@ -87,12 +116,12 @@ export function GreenlantersChatbot({ setActiveTab }: Props) {
     const text = textById[id];
     if (text) handleSend(text);
   };
-
   const handleSend = async (preset?: string) => {
-    const question = (preset || input).trim();
+    const question = (preset || input).trim().slice(0, 1200);
     if (!question || typing) return;
     setInput('');
-    setMessages(prev => [...prev, { role: 'user', text: question }]);
+    const nextMessages = [...messages, { role: 'user' as const, text: question }];
+    setMessages(nextMessages);
     setTyping(true);
 
     try {
@@ -102,6 +131,7 @@ export function GreenlantersChatbot({ setActiveTab }: Props) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             message: question,
+            history: nextMessages.slice(-MAX_HISTORY),
             business: businessProfile,
             services,
             config
@@ -116,9 +146,9 @@ export function GreenlantersChatbot({ setActiveTab }: Props) {
         }
       }
       const local = answerLocal(question);
-      addAssistant(local || 'Puedo ayudarte con servicios, precios, horarios, ubicación, reservas y tarjetas regalo. También puedes hablar directamente por WhatsApp.');
+      addAssistant(local || chatbotConfig.fallbackMessage);
     } catch {
-      addAssistant(answerLocal(question) || 'Ahora mismo no puedo consultar el asistente inteligente. Puedes continuar por WhatsApp.');
+      addAssistant(answerLocal(question) || chatbotConfig.fallbackMessage);
     } finally {
       setTyping(false);
     }
@@ -150,9 +180,8 @@ export function GreenlantersChatbot({ setActiveTab }: Props) {
                 {m.text.split('\n').map((line, n) => <React.Fragment key={n}>{n > 0 && <br />}{line}</React.Fragment>)}
               </div>
             ))}
-            {typing && <div className="gl-chat-message assistant">Escribiendo…</div>}
+            {typing && <div className="gl-chat-message assistant gl-chat-typing"><span>•</span><span>•</span><span>•</span></div>}
           </div>
-
           <div className="gl-chat-actions">
             {chatbotQuickActions.map(action => (
               <button key={action.id} onClick={() => handleAction(action.id)}>{action.label}</button>
@@ -160,7 +189,12 @@ export function GreenlantersChatbot({ setActiveTab }: Props) {
           </div>
 
           <form className="gl-chat-input" onSubmit={e => { e.preventDefault(); handleSend(); }}>
-            <input value={input} onChange={e => setInput(e.target.value)} placeholder="Escribe tu pregunta…" />
+            <input
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              placeholder="Cuéntame qué tienes en mente…"
+              aria-label="Escribe tu mensaje"
+            />
             <button type="submit" aria-label="Enviar"><Send size={18} /></button>
           </form>
         </section>

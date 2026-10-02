@@ -2,104 +2,122 @@
 
 ## Objetivo
 
-El chatbot es un módulo opcional del motor reutilizable. Puede activarse para un negocio y desactivarse para otro sin cambiar el componente principal.
+El chatbot es un módulo opcional del motor reutilizable. Su objetivo no es parecer un formulario automático, sino atender como una persona cercana del salón.
 
-## Archivos
+## Personalidad humana
 
-- `src/components/GreenlantersChatbot.tsx`: interfaz y conversación.
-- `src/config/chatbotConfig.ts`: configuración del módulo.
-- `src/styles/chatbot.css`: apariencia visual.
-- `server.js`: endpoint `POST /api/chat`.
-- `docs/MANUAL_PROPIETARIA_CHATBOT.md`: manual de uso de la propietaria.
+La personalidad actual se llama **Lía** y está definida en `src/config/chatbotConfig.ts`.
 
-## Activación
+Principios:
+- español natural de España;
+- tono cercano, cálido y espontáneo;
+- frases variadas y conversación real;
+- preguntas de seguimiento cuando aportan valor;
+- humor suave y emojis puntuales;
+- evita saludos y frases repetidas;
+- no se presenta como IA ni menciona prompts;
+- no inventa información del negocio.
 
-En `chatbotConfig.ts`:
+La personalidad está separada de los datos del negocio para poder reutilizar el módulo en otros clientes.
 
-`enabled: true`
+## Memoria conversacional
 
-Para una instalación que no quiera chatbot:
+El navegador mantiene la conversación durante la sesión mediante `sessionStorage`.
 
-`enabled: false`
+Clave utilizada:
+`greenlanters-chat-history-v2`
 
-## Configuración por cliente
+Se conservan como máximo 14 mensajes recientes. El historial se envía a `POST /api/chat` para que Gemini pueda mantener el contexto.
 
-Cambiar:
-- nombre del asistente;
-- mensaje de bienvenida;
-- número de WhatsApp;
-- activación de IA.
+Ejemplo:
+- clienta: «Tengo una boda el sábado.»
+- clienta: «Voy de verde.»
+- Lía puede continuar hablando del color sin volver a preguntar por el evento.
 
-Los datos operativos se obtienen de:
-- `/api/services`;
-- `/api/config`;
-- `businessProfile`.
-
-Esto permite reutilizar el componente sin copiar la lógica de cada cliente.
+La memoria es de sesión y no sustituye a una base de datos de clientes.
 
 ## Inteligencia artificial
 
-El frontend intenta usar `POST /api/chat`.
+El frontend utiliza `POST /api/chat`.
 
 El servidor utiliza Gemini solamente si existe `GEMINI_API_KEY`.
+El modelo se controla mediante `GEMINI_MODEL` y por defecto es `gemini-2.5-flash`.
 
-El modelo se controla con `GEMINI_MODEL` y, si no se especifica, se usa `gemini-2.5-flash`.
+El servidor envía una instrucción de personalidad separada del historial y del contexto del negocio.
 
-Si la IA no está configurada o falla, el chatbot utiliza respuestas locales de respaldo.
+Reglas:
+- no inventar precios, horarios, disponibilidad o políticas;
+- no confirmar reservas sin una acción real confirmada;
+- reconocer cuando falta información;
+- ofrecer WhatsApp o reserva web cuando corresponda;
+- no dar consejos médicos ni legales.
+
+## Respuesta local de respaldo
+
+Si Gemini no está configurado o falla, el asistente sigue conversando mediante respuestas locales.
+
+El fallback incluye:
+- saludos;
+- servicios y precios disponibles;
+- horarios;
+- ubicación;
+- reservas;
+- tarjetas regalo;
+- agradecimientos.
+
+El fallback también utiliza un tono humano y no un mensaje técnico de error.
+
+## Interfaz
+
+El panel mantiene la identidad visual Greenlanters:
+- verde profundo;
+- verde neón;
+- crema;
+- burbujas diferenciadas para clienta y asistente;
+- indicador de escritura animado;
+- entrada con placeholder conversacional.
+
+## Archivos
+
+- `src/components/GreenlantersChatbot.tsx`: interfaz, memoria de sesión y conversación.
+- `src/config/chatbotConfig.ts`: personalidad y configuración.
+- `src/styles/chatbot.css`: apariencia.
+- `server.js`: endpoint de IA y personalidad del servidor.
+- este documento: arquitectura y reglas reutilizables.
 
 ## Seguridad
 
 La clave de Gemini permanece exclusivamente en el servidor.
 
-Nunca debe colocarse `GEMINI_API_KEY` en código React ni enviarse al navegador.
+Nunca colocar `GEMINI_API_KEY` en React ni enviarla al navegador.
 
-El endpoint limita el mensaje recibido a 1.200 caracteres y no expone secretos.
+El endpoint limita el mensaje a 1.200 caracteres y el historial a 14 mensajes.
 
-## WhatsApp
+## WhatsApp y reservas
 
-El chatbot obtiene primero `whatsapp` desde la configuración del negocio y utiliza `phone` como respaldo.
+WhatsApp utiliza la configuración del negocio y se normaliza para España cuando no existe prefijo internacional.
 
-El número se normaliza para España cuando no contiene prefijo internacional.
+El botón de reserva utiliza la navegación existente de la aplicación.
 
-## Reservas
+El chatbot nunca debe afirmar que una cita está confirmada si la aplicación no ha realizado y confirmado esa operación.
 
-El botón de reserva utiliza la navegación existente de la aplicación y abre la vista `booking`.
+## Modelo white-label
 
-El chatbot no confirma una reserva por sí mismo.
-
-## Modelo mayorista / white-label
-
-Para un nuevo cliente:
+Para otro cliente:
 
 1. Copiar la plantilla.
 2. Crear su `businessProfile`.
-3. Configurar identidad y colores.
-4. Cargar servicios y contenido.
-5. Configurar teléfono y WhatsApp.
-6. Decidir si se activa el chatbot.
-7. Configurar Gemini si el cliente quiere IA.
-8. Probar servicios, contacto, reserva y chatbot.
-9. Crear dominio y desplegar.
+3. Cambiar personalidad y nombre del asistente.
+4. Configurar identidad visual.
+5. Cargar servicios y contenido.
+6. Configurar teléfono y WhatsApp.
+7. Decidir si se activa IA.
+8. Probar conversación y fallback.
+9. Probar reservas y contacto.
+10. Desplegar.
 
-## Qué puede venderse como extra
+## Regla de diseño
 
-- Chatbot básico con respuestas locales.
-- Chatbot con IA.
-- Integración con WhatsApp.
-- Integración con reservas.
-- Base de conocimiento personalizada.
-- Automatizaciones posteriores.
+**Persona + memoria de sesión + conocimiento real del negocio + acciones reales.**
 
-## Mantenimiento
-
-El núcleo del chatbot debe actualizarse en la plantilla maestra.
-
-Los datos propios del negocio deben permanecer en configuración, contenido y base de datos.
-
-No se recomienda duplicar código para cada cliente.
-
-## Regla de oro
-
-**Motor común + configuración independiente + módulos opcionales.**
-
-Así una actualización del chatbot puede aplicarse a múltiples instalaciones sin reconstruir cada web desde cero.
+El chatbot debe sentirse humano sin inventar capacidades que la web no tiene.

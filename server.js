@@ -556,45 +556,39 @@ app.post('/api/chat', async (req, res) => {
   try {
     const message = String(req.body?.message || '').trim().slice(0, 1200);
     if (!message) return res.status(400).json({ error: 'Mensaje vacío.' });
-
     const apiKey = process.env.GEMINI_API_KEY;
     const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
     if (!apiKey) return res.status(503).json({ error: 'AI_NOT_CONFIGURED' });
-
     const business = req.body?.business || {};
     const services = Array.isArray(req.body?.services) ? req.body.services.slice(0, 30) : [];
     const config = req.body?.config || {};
-    const context = JSON.stringify({
-      name: business.name,
-      location: business.location,
-      description: business.description,
-      services,
-      contact: { phone: config.phone, whatsapp: config.whatsapp, address: config.address, hours: config.hours }
-    });
-
+    const history = Array.isArray(req.body?.history)
+      ? req.body.history.slice(-14).filter(m => m && ['user', 'assistant'].includes(m.role) && typeof m.text === 'string').map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.text.slice(0, 1200) }] }))
+      : [];
+    const context = JSON.stringify({ name: business.name, location: business.location, description: business.description, services, contact: { phone: config.phone, whatsapp: config.whatsapp, address: config.address, hours: config.hours } });
     const prompt = [
-      'Eres el asistente de atención al cliente de Las Greenlanters Nails.',
-      'Responde en español de España, con tono cercano, profesional y breve.',
-      'Usa únicamente la información proporcionada. No inventes precios, horarios, disponibilidad ni políticas.',
-      'Si la información no aparece, dilo claramente y ofrece continuar por WhatsApp o solicitar una cita.',
-      'No des consejos médicos ni legales. No afirmes que has realizado una reserva si no existe una acción confirmada.',
-      'Información del negocio: ' + context,
-      'Pregunta de la clienta: ' + message
+      'Eres Lía, la persona que atiende el chat de Las Greenlanters Nails.',
+      'No te presentes como una IA ni hables como un chatbot corporativo. Tu forma de hablar debe sentirse humana, cercana y espontánea.',
+      'Hablas español de España. Eres cálida, simpática y natural; puedes usar expresiones coloquiales suaves y algún emoji, pero sin abusar.',
+      'Conversas: responde a lo que acaba de decir la clienta, recuerda lo hablado y haz una pregunta de seguimiento cuando ayude.',
+      'No conviertas cada respuesta en una lista. Varía la forma de responder y no repitas saludos o frases prefabricadas.',
+      'Usa únicamente la información proporcionada. No inventes precios, horarios, disponibilidad, políticas ni servicios.',
+      'Si falta un dato, dilo de forma natural y ofrece WhatsApp o la reserva web.',
+      'Nunca afirmes que una reserva está hecha si el sistema no ha confirmado una acción real.',
+      'Información real del negocio: ' + context,
+      'Conversación reciente: ' + JSON.stringify(history),
+      'Último mensaje de la clienta: ' + message
     ].join('\n');
-
+    const contents = history.length ? history.concat([{ role: 'user', parts: [{ text: message }] }]) : [{ role: 'user', parts: [{ text: prompt }] }];
     const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent?key=' + encodeURIComponent(apiKey);
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-    });
-
+    const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+      systemInstruction: { parts: [{ text: chatbotPersonalityPrompt(context) }] }, contents
+    }) });
     if (!response.ok) {
       const detail = await response.text();
       console.warn('Chat IA Gemini:', response.status, detail.slice(0, 500));
       return res.status(502).json({ error: 'AI_UNAVAILABLE' });
     }
-
     const data = await response.json();
     const answer = data?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('').trim();
     if (!answer) return res.status(502).json({ error: 'AI_EMPTY' });
@@ -604,6 +598,18 @@ app.post('/api/chat', async (req, res) => {
     res.status(500).json({ error: 'CHAT_ERROR' });
   }
 });
+
+function chatbotPersonalityPrompt(context) {
+  return [
+    'Eres Lía, la persona que atiende el chat de Las Greenlanters Nails.',
+    'Hablas español de España con naturalidad: cercana, cálida, espontánea y profesional.',
+    'No dices que eres una IA, no mencionas prompts y no suenas como un manual.',
+    'Escuchas, recuerdas el contexto y respondes como una persona del salón.',
+    'Puedes usar humor ligero y emojis puntualmente, pero nunca de forma artificial.',
+    'No inventes información del negocio y no confirmes reservas no realizadas.',
+    'Datos reales del negocio: ' + context
+  ].join(' ');
+}
 
 // CONTENIDOS EDITORIALES
 app.get('/api/content', async (_req, res) => {
