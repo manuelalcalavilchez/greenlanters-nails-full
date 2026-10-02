@@ -84,78 +84,80 @@ export function GreenlantersChatbot({ setActiveTab }: Props) {
 
   const answerLocal = (question: string) => {
     const q = normalize(question);
-    const hasPriceData = services.some(s => s.price !== undefined && s.price !== null && s.price !== '');
-    const gelService = findService(q, ['gel']);
-    const polygelService = findService(q, ['polygel', 'poli gel']);
+    const isAboutGel = q.includes('gel');
+    const isAboutPolygel = q.includes('polygel') || q.includes('poli gel');
+    const isQuestion = q.includes('?') || q.startsWith('que ') || q.startsWith('como ') || q.startsWith('cual ');
 
-    if (q.includes('hola') || q.includes('buenas') || q.includes('hey')) {
-      return '¡Holaaa! 💚 Cuéntame, ¿qué te apetece hacerte? Si tienes una idea en mente, aunque sea un poco loca, también me vale 😄';
+    if (q.includes('hola') || q.includes('buenas') || q.includes('hey') || q === 'buenos dias' || q === 'buenas tardes') {
+      return '¡Holaaa! 💚 ¿Qué tienes en mente? Cuéntame y lo vemos juntas.';
     }
 
-    if ((q.includes('diferencia') || q.includes('compar') || q.includes('mejor')) && (q.includes('gel') || q.includes('polygel') || q.includes('poli gel'))) {
-      return 'La diferencia principal es que gel y poligel son técnicas/productos distintos para trabajar y dar estructura a la uña. 💚 En la web tengo ambos como servicios, pero no tengo cargada una explicación técnica detallada de cada uno como para decirte cuál te conviene más sin inventar. Si me cuentas qué buscas —por ejemplo, longitud, resistencia o un acabado concreto— te puedo orientar con lo que sí tenemos disponible.';
+    if (q.includes('gracias') || q.includes('perfecto') || q.includes('genial') || q.includes('vale')) {
+      return '¡Eso es! 💚 Si quieres seguimos mirando y te ayudo a decidir.';
     }
 
-    if ((q.includes('que es') || q.includes('qué es') || q.includes('como es') || q.includes('en que consiste') || q.includes('para que sirve')) && (q.includes('polygel') || q.includes('poli gel'))) {
-      const description = polygelService?.description || polygelService?.shortDescription;
-      return description
-        ? `El poligel es un servicio que tenemos en el salón. 😊 En la ficha aparece así: “${description}”. Si quieres, también te puedo contar la diferencia con el gel.`
-        : 'El poligel es una técnica/producto para trabajar y dar estructura a la uña. 😊 No tengo una descripción más detallada cargada en la web y prefiero no inventártela.';
+    if ((q.includes('diferencia') || q.includes('compar') || q.includes('mejor')) && isAboutGel && isAboutPolygel) {
+      return 'Son dos formas distintas de dar estructura a la uña. El gel suele dejar una sensación más ligera y el poligel combina parte de la flexibilidad del gel con más cuerpo para trabajar la forma. 💚 Si me dices si buscas algo más natural, más resistente o más largo, te digo por dónde empezaría.';
     }
 
-    if ((q.includes('que es') || q.includes('qué es') || q.includes('como es') || q.includes('en que consiste') || q.includes('para que sirve')) && q.includes('gel')) {
-      const description = gelService?.description || gelService?.shortDescription;
-      return description
-        ? `Las uñas en gel son un servicio que tenemos en el salón. 😊 En la ficha aparece así: “${description}”. Si quieres, también te puedo contar la diferencia con el poligel.`
-        : 'Las uñas en gel son una técnica/producto para trabajar y dar estructura a la uña. 😊 No tengo una descripción más detallada cargada en la web y prefiero no inventártela.';
+    if (isAboutPolygel && (q.includes('que es') || q.includes('como es') || q.includes('en que consiste') || q.includes('para que sirve') || isQuestion)) {
+      return 'El poligel es un material para construir y dar forma a la uña. Queda muy bien cuando quieres ganar estructura o longitud sin que resulte tan rígido como algunos sistemas de construcción. 😊 ¿Buscas alargar tus uñas o reforzar las que ya tienes?';
     }
 
-    if (q.includes('mas barato') || q.includes('más barato') || q.includes('barato') || q.includes('cuanto cuesta') || q.includes('cuánto cuesta') || q.includes('que precio') || q.includes('qué precio') || q.includes('precio')) {
-      const specific = q.includes('polygel') || q.includes('poli gel') ? polygelService : q.includes('gel') ? gelService : undefined;
-      if (specific?.price !== undefined && specific?.price !== null && specific.price !== '') {
-        return `El servicio de ${specific.name || 'ese tipo de uñas'} aparece ahora mismo a ${specific.price} €. 😊`;
+    if (isAboutGel && !isAboutPolygel && (q.includes('que es') || q.includes('como es') || q.includes('en que consiste') || q.includes('para que sirve') || isQuestion)) {
+      return 'Las uñas de gel se trabajan con un producto que permite construir o reforzar la uña y darle la forma que buscas. Es una opción muy versátil, tanto para algo natural como para llevar más longitud. 💚 ¿Las quieres cortitas y naturales o te apetece algo más largo?';
+    }
+
+    if ((q.includes('precio') || q.includes('cuanto cuesta') || q.includes('barato')) && (isAboutGel || isAboutPolygel)) {
+      const service = isAboutPolygel ? findService(q, ['polygel', 'poli gel']) : findService(q, ['gel']);
+      if (service?.price !== undefined && service?.price !== null && service.price !== '') {
+        return `Para ${service.name || (isAboutPolygel ? 'poligel' : 'gel')}, ahora mismo son ${service.price} €. 😊`;
       }
-      if ((q.includes('mas barato') || q.includes('barato')) && hasPriceData) {
-        const priced = services.filter(s => s.price !== undefined && s.price !== null && s.price !== '').map(s => ({ ...s, numericPrice: Number(String(s.price).replace(',', '.')) })).filter(s => Number.isFinite(s.numericPrice));
-        if (priced.length) {
-          const min = Math.min(...priced.map(s => s.numericPrice));
-          const cheapest = priced.filter(s => s.numericPrice === min).map(s => s.name || 'Servicio').join(' y ');
-          return `De los servicios que tienen precio cargado, el más económico es ${cheapest}, a ${min} €. 💚`;
-        }
-      }
-      return 'Ahora mismo no tengo cargado el precio de ese servicio en la web, así que prefiero no inventártelo 😅. Si quieres saber el precio exacto, puedes consultarlo con el salón por WhatsApp.';
+      return 'El precio puede cambiar según lo que quieras hacerte, sobre todo si lleva longitud o diseño. Si me cuentas qué tienes pensado, te digo cómo lo plantearía; para un precio cerrado, mejor que el salón vea el diseño.';
     }
 
-    if (q.includes('diseño') && (q.includes('foto') || q.includes('fotos') || q.includes('imagen') || q.includes('referencia') || q.includes('inspiracion') || q.includes('inspiración'))) {
-      return 'Sí 💚 Una foto de referencia puede servir para enseñar el diseño que buscas. Para saber si se puede reproducir tal cual y cuánto costaría, lo ideal es que el salón vea la imagen, porque puede depender de la técnica y de lo elaborado que sea.';
+    if (q.includes('precio') || q.includes('cuanto cuesta') || q.includes('barato')) {
+      const priced = services
+        .filter(s => s.price !== undefined && s.price !== null && s.price !== '')
+        .map(s => ({ ...s, numericPrice: Number(String(s.price).replace(',', '.')) }))
+        .filter(s => Number.isFinite(s.numericPrice));
+      if (q.includes('barato') && priced.length) {
+        const min = Math.min(...priced.map(s => s.numericPrice));
+        const names = priced.filter(s => s.numericPrice === min).map(s => s.name || 'ese servicio').join(' o ');
+        return `Si buscas algo económico, el servicio que aparece con el precio más bajo es ${names}, a ${min} €. 💚`;
+      }
+      return 'Claro 😊 Dime qué te quieres hacer —gel, poligel, semipermanente, diseño…— y te digo el precio que tenemos para ese servicio.';
     }
 
-    if (q.includes('servicio') || q.includes('que teneis') || q.includes('qué tenéis') || q.includes('que ofreceis') || q.includes('qué ofrecéis')) {
-      if (services.length) {
-        return 'Claro 😊 Ahora mismo tengo estos servicios:\n\n' + formatServices() + '\n\nSi me dices qué quieres hacerte, te ayudo a orientarte.';
-      }
-      return 'Ahora mismo no tengo el catálogo cargado. Si me dices qué tienes en mente, puedo orientarte o ponerte en contacto con el salón.';
+    if (q.includes('foto') || q.includes('fotos') || q.includes('imagen') || q.includes('referencia') || q.includes('inspiracion')) {
+      return '¡Sí, pásame la idea! 😍 Una referencia ayuda muchísimo. Si el diseño lleva dibujos, efectos o bastante detalle, el precio puede depender de cómo haya que trabajarlo. Si quieres enseñárselo directamente al salón, también puedes mandarlo por WhatsApp.';
+    }
+
+    if (q.includes('servicio') || q.includes('que teneis') || q.includes('que ofreceis') || q.includes('catalogo')) {
+      if (!services.length) return 'Cuéntame qué resultado buscas y te ayudo a encontrar una opción que encaje contigo. 💚';
+      return 'Claro 😊 Tenemos estas opciones ahora mismo:\n\n' + formatServices() + '\n\nSi me dices qué resultado buscas, también te ayudo a elegir.';
     }
 
     if (q.includes('hora') || q.includes('abierto') || q.includes('horario')) {
       return config.hours
-        ? 'Sí 😊 El horario que tengo ahora mismo es:\n\n' + config.hours
-        : 'Déjame no inventarte un horario 😅. Si necesitas saber si están disponibles a una hora concreta, lo mejor es hablar con el salón por WhatsApp.';
+        ? 'Nuestro horario es:\n\n' + config.hours + '\n\nSi quieres venir un día concreto, dime cuál y vemos el siguiente paso 😊'
+        : 'Dime qué día quieres venir y, para confirmarte disponibilidad, lo mejor es hablar directamente con el salón.';
     }
-    if (q.includes('donde') || q.includes('dirección') || q.includes('ubicación')) {
+
+    if (q.includes('donde') || q.includes('direccion') || q.includes('ubicacion')) {
       return config.address
-        ? 'Estamos por aquí 📍\n\n' + config.address
-        : 'El salón está en ' + businessProfile.location + '. Si quieres la dirección exacta, te la puedo facilitar por WhatsApp.';
+        ? `Estamos en 📍 ${config.address}`
+        : `Estamos en ${businessProfile.location}. Para la dirección exacta, te la paso por WhatsApp.`;
     }
+
     if (q.includes('reserva') || q.includes('cita') || q.includes('apuntar')) {
-      return '¡Claro! 💚 Puedes reservar desde la web. Si me cuentas qué servicio quieres y, si ya lo sabes, qué día te viene bien, te voy guiando.';
+      return '¡Claro! 💚 Puedes reservar desde la web. ¿Sabes ya qué servicio quieres o estás todavía mirando ideas?';
     }
+
     if (q.includes('regalo') || q.includes('tarjeta')) {
-      return 'Sí 🎁 Tenemos la opción de tarjetas regalo. Si quieres, te explico dónde encontrarla en la web.';
+      return 'Sí 🎁 Las tarjetas regalo son una opción muy chula si es para regalar una manicura. Si quieres, te indico dónde verlas en la web.';
     }
-    if (q.includes('gracias') || q.includes('perfecto') || q.includes('genial')) {
-      return '¡De nada! 💚 Para eso estoy. Si se te ocurre otra cosa, aquí me tienes.';
-    }
+
     return '';
   };
 
@@ -167,7 +169,7 @@ export function GreenlantersChatbot({ setActiveTab }: Props) {
       return;
     }
     const textById: Record<string, string> = {
-      services: 'Quiero saber qué servicios tenéis y cuánto cuestan.',
+      services: '¿Qué servicios tenéis?',
       hours: '¿Cuál es vuestro horario?',
       location: '¿Dónde está el salón?',
       gift: '¿Tenéis tarjetas regalo?'
