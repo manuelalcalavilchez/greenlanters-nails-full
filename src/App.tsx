@@ -9,11 +9,11 @@ const NailStudioEditor = lazy(() => import('./components/NailStudioEditor').then
 import { BookingRequest } from './components/BookingRequest';
 const AdminPanel = lazy(() => import('./components/AdminPanel').then(m => ({ default: m.AdminPanel })));
 import { MyBookingsView } from './components/MyBookingsView';
+import { WhatsAppButton } from './components/WhatsAppButton';
 import { Appointment, CustomDesign, GiftCard, NailCatalogStyle } from './types';
 import { NAIL_STYLES_CATALOG } from './data/mockData';
 import { apiService } from './data/api';
 import { businessProfile } from './config/businessProfile';
-import { GreenlantersChatbot } from './components/GreenlantersChatbot';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('home');
@@ -39,21 +39,10 @@ export default function App() {
     return [];
   });
 
-  // Carga inicial de citas y diseños desde la base de datos (API -> server.js -> SQLite)
+  // Las citas y diseños privados se cargan únicamente dentro de Cabina Staff.
+  // La web pública no debe llamar a endpoints protegidos al arrancar.
   useEffect(() => {
-    let cancelled = false;
-    const loadData = async () => {
-      const [appts, designs] = await Promise.all([
-        apiService.getAppointments(),
-        apiService.getDesigns()
-      ]);
-      if (cancelled) return;
-      setAppointments(Array.isArray(appts) ? appts : []);
-      setCustomDesigns(Array.isArray(designs) ? designs : []);
-      setIsLoadingData(false);
-    };
-    loadData();
-    return () => { cancelled = true; };
+    setIsLoadingData(false);
   }, []);
 
   useEffect(() => {
@@ -171,7 +160,7 @@ export default function App() {
       {/* Footer */}
       <Footer />
 
-      <GreenlantersChatbot setActiveTab={setActiveTab} />
+      <WhatsAppButton />
 
       {/* Mobile Bottom Navigation */}
       <BottomNav 
